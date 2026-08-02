@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Search, Filter, LayoutGrid, List, ChevronDown, ShoppingBag } from 'lucide-react'
 import { ProductCard } from '../components/ProductCard'
@@ -12,9 +12,15 @@ export default function ProductListing() {
   const [view, setView] = useState('grid')
   const [searchTerm, setSearchTerm] = useState('')
 
-  const getAllActiveSellerProducts = useProductStore((state) => state.getAllActiveSellerProducts)
-  const activeProducts = getAllActiveSellerProducts()
-  const categories = useProductStore((state) => state.categories)
+  const activeProducts = useProductStore((state) => state.marketplaceProducts) || []
+  const categories = useProductStore((state) => state.categories) || []
+  const fetchMarketplaceProducts = useProductStore((state) => state.fetchMarketplaceProducts)
+  const fetchCategories = useProductStore((state) => state.fetchCategories)
+
+  useEffect(() => {
+    fetchMarketplaceProducts()
+    fetchCategories()
+  }, [fetchMarketplaceProducts, fetchCategories])
 
   const featuredCategories = [
     'Electronics',

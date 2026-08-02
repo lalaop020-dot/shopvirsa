@@ -6,15 +6,22 @@ import useAuthStore from '../store/useAuthStore'
 import useChatStore from '../store/useChatStore'
 
 export function ChatWindow({ recipient = 'Support', onClose }) {
-  const { user } = useAuthStore()
+  const { user, role } = useAuthStore()
   const email = user?.email || 'customer@demo.com'
 
-  const messages = useChatStore((state) => state.getMessages(email))
-  const sendMessage = useChatStore((state) => state.sendMessage)
+  const { getMessages, fetchMessages, sendMessage } = useChatStore()
+  const messages = getMessages('admin') // Admin is the partner
 
   const [input, setInput] = useState('')
   const [isMinimized, setIsMinimized] = useState(false)
   const scrollRef = useRef(null)
+
+  // Fetch messages if not minimized
+  useEffect(() => {
+    if (!isMinimized) {
+      fetchMessages('admin')
+    }
+  }, [isMinimized, fetchMessages])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -22,11 +29,11 @@ export function ChatWindow({ recipient = 'Support', onClose }) {
     }
   }, [messages])
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault()
     if (!input.trim()) return
 
-    sendMessage(email, input, 'user')
+    await sendMessage('admin', input) // Send to admin
     setInput('')
   }
 
@@ -93,9 +100,11 @@ export function ChatWindow({ recipient = 'Support', onClose }) {
                         ? 'bg-dark-card border border-dark-border text-slate-300 rounded-tl-none font-medium italic'
                         : 'bg-dark-card border border-dark-border text-white rounded-tl-none'
                   }`}>
-                    {msg.text}
+                    {msg.text || msg.body}
                   </div>
-                  <span className="text-[9px] text-slate-600 mt-1">{msg.time}</span>
+                  <span className="text-[9px] text-slate-600 mt-1">
+                    {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : msg.time}
+                  </span>
                 </div>
               )
             })}

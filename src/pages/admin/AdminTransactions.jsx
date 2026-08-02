@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Check, X, ShieldAlert, CheckCircle2, History } from 'lucide-react'
 import { Card } from '../../components/common/Card'
 import { Button } from '../../components/common/Button'
@@ -6,33 +7,34 @@ import toast from 'react-hot-toast'
 
 export default function AdminTransactions() {
   const transactions = usePlatformStore((state) => state.transactions)
-  const approveDeposit = usePlatformStore((state) => state.approveDeposit)
-  const rejectDeposit = usePlatformStore((state) => state.rejectDeposit)
-  const approveWithdrawal = usePlatformStore((state) => state.approveWithdrawal)
-  const rejectWithdrawal = usePlatformStore((state) => state.rejectWithdrawal)
+  const fetchAllTransactions = usePlatformStore((state) => state.fetchAllTransactions)
+  const approveTransaction = usePlatformStore((state) => state.approveTransaction)
+  const rejectTransaction = usePlatformStore((state) => state.rejectTransaction)
 
-  const handleApprove = (tx) => {
-    if (tx.type === 'Deposit') {
-      approveDeposit(tx.id)
-      toast.success(`Deposit request ${tx.id} approved! Seller balance updated.`)
+  useEffect(() => {
+    fetchAllTransactions()
+  }, [fetchAllTransactions])
+
+  const handleApprove = async (tx) => {
+    const success = await approveTransaction(tx.id)
+    if (success) {
+      toast.success(`Transaction ${tx.id} approved successfully!`)
     } else {
-      approveWithdrawal(tx.id)
-      toast.success(`Withdrawal request ${tx.id} approved! Sent successfully.`)
+      toast.error('Failed to approve transaction')
     }
   }
 
-  const handleReject = (tx) => {
-    if (tx.type === 'Deposit') {
-      rejectDeposit(tx.id)
-      toast.success(`Deposit request ${tx.id} rejected.`)
+  const handleReject = async (tx) => {
+    const success = await rejectTransaction(tx.id)
+    if (success) {
+      toast.success(`Transaction ${tx.id} rejected.`)
     } else {
-      rejectWithdrawal(tx.id)
-      toast.success(`Withdrawal request ${tx.id} rejected. Funds returned.`)
+      toast.error('Failed to reject transaction')
     }
   }
 
-  const pending = transactions.filter(t => t.status === 'Pending')
-  const completed = transactions.filter(t => t.status !== 'Pending')
+  const pending = transactions.filter(t => t.status === 'Pending' || t.status === 'pending')
+  const completed = transactions.filter(t => t.status !== 'Pending' && t.status !== 'pending')
 
   return (
     <div className="space-y-8 animate-fade-in">

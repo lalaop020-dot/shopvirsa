@@ -1,32 +1,38 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Search, Filter, Warehouse, CheckCircle2 } from 'lucide-react'
 import { ProductCard } from '../../components/ProductCard'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
-import useAuthStore from '../../store/useAuthStore'
 import { useProductStore } from '../../store/useProductStore'
 import toast from 'react-hot-toast'
 
 export default function ProductStorehouse() {
-  const { user } = useAuthStore()
-  const sellerEmail = user?.email || 'seller@demo.com'
-
-  const storeroomProducts = useProductStore((state) => state.storeroomProducts)
-  const sellerProductsList = useProductStore((state) => state.sellerProducts[sellerEmail]) || []
+  const storeroomProducts = useProductStore((state) => state.storeroomProducts) || []
+  const sellerProductsList = useProductStore((state) => state.sellerProducts) || []
   const importProduct = useProductStore((state) => state.importProductToSellerStore)
+  const fetchStoreroomProducts = useProductStore((state) => state.fetchStoreroomProducts)
+  const fetchSellerProducts = useProductStore((state) => state.fetchSellerProducts)
+  const isLoading = useProductStore((state) => state.isLoading)
+
+  useEffect(() => {
+    fetchStoreroomProducts()
+    fetchSellerProducts()
+  }, [fetchStoreroomProducts, fetchSellerProducts])
 
   const [searchTerm, setSearchTerm] = useState('')
   const [isImporting, setIsImporting] = useState(null)
 
-  const importedIds = sellerProductsList.map(p => p.globalId)
+  const importedIds = sellerProductsList.map(p => p.globalId || p.product_id || p.id)
 
   const handleImport = async (product) => {
     setIsImporting(product.id)
     try {
-      // Small simulated latency for feel
-      await new Promise(resolve => setTimeout(resolve, 600))
-      importProduct(sellerEmail, product.id)
-      toast.success(`${product.name} imported to your store!`)
+      const success = await importProduct(null, product.id)
+      if (success) {
+        toast.success(`${product.name} imported to your store!`)
+      } else {
+        toast.error('Failed to import product')
+      }
     } catch (error) {
       toast.error('Failed to import product')
     } finally {

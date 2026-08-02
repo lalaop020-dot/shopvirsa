@@ -1,84 +1,91 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { orderService } from '../services/orderService'
 
-const useOrderStore = create(
-  persist(
-    (set, get) => ({
-      orders: [],
+const useOrderStore = create((set, get) => ({
+  orders: [],
+  isLoading: false,
+  error: null,
 
-      createOrder: (cartItems, shippingInfo, paymentMethod) => {
-        const orderId = 'ORD-' + Math.floor(10000 + Math.random() * 90000)
-        const date = new Date().toISOString()
-
-        const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-        const tax = subtotal * 0.08
-        const shipping = 0
-        const total = subtotal + tax + shipping
-
-        const order = {
-          id: orderId,
-          items: cartItems.map(item => ({
-            productId: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            image: item.image,
-            category: item.category,
-            sellerEmail: item.sellerEmail
-          })),
-          subtotal,
-          tax,
-          shipping,
-          total,
-          status: 'Processing',
-          shippingAddress: { ...shippingInfo },
-          paymentMethod,
-          createdAt: date
-        }
-
-        set((state) => ({
-          orders: [order, ...state.orders]
-        }))
-
-        return order
-      },
-
-      getOrdersByCustomer: (email) => {
-        return get().orders.filter(o => o.shippingAddress?.email === email)
-      },
-
-      getOrdersForSeller: (email) => {
-        return get().orders
-          .filter(o => o.items.some(item => item.sellerEmail === email))
-          .map(o => {
-            const sellerItems = o.items.filter(item => item.sellerEmail === email)
-            const sellerSubtotal = sellerItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-            const sellerTax = sellerSubtotal * 0.08
-            const sellerTotal = sellerSubtotal + sellerTax
-            return {
-              ...o,
-              items: sellerItems,
-              subtotal: sellerSubtotal,
-              tax: sellerTax,
-              total: sellerTotal
-            }
-          })
-      },
-
-      updateOrderStatus: (orderId, status) => {
-        set((state) => ({
-          orders: state.orders.map(o =>
-            o.id === orderId ? { ...o, status } : o
-          )
-        }))
-      },
-
-      getAllOrders: () => get().orders
-    }),
-    {
-      name: 'shopiversa-orders-v1'
+  fetchMyOrders: async () => {
+    set({ isLoading: true })
+    try {
+      const data = await orderService.getMyOrders()
+      const orders = Array.isArray(data) ? data : (data.items || data.data || [])
+      set({ orders, error: null })
+    } catch (error) {
+      set({ error: error.message })
+    } finally {
+      set({ isLoading: false })
     }
-  )
-)
+  },
+
+  fetchCustomerOrders: async () => {
+    set({ isLoading: true })
+    try {
+      const data = await orderService.getCustomerOrders()
+      const orders = Array.isArray(data) ? data : (data.items || data.data || [])
+      set({ orders, error: null })
+    } catch (error) {
+      set({ error: error.message })
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  fetchSellerOrders: async () => {
+    set({ isLoading: true })
+    try {
+      const data = await orderService.getSellerOrders()
+      const orders = Array.isArray(data) ? data : (data.items || data.data || [])
+      set({ orders, error: null })
+    } catch (error) {
+      set({ error: error.message })
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  createOrder: async (cartItems, shippingInfo, paymentMethod) => {
+    try {
+      const orderData = {
+        items: cartItems.map(item => ({
+          productId: item.globalId || item.id, // Using globalId if from marketplace
+          name: item.name,
+          price: parseFloat(item.price),
+          quantity: parseInt(item.quantity),
+          image: item.image || null,
+          category: item.category || null,
+          sellerEmail: item.sellerEmail || null
+        })),
+        shippingAddress: {
+          name: shippingInfo.name,
+          address: shippingInfo.address,
+          city: shippingInfo.city,
+          zip: shippingInfo.zip,
+          email: shippingInfo.email || null
+        },
+        paymentMethod: paymentMethod
+      }
+      
+      const newOrder = await orderService.createOrder(orderData)
+      return newOrder
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  },
+
+  updateOrderStatus: async (orderId, status) => {
+    try {
+      await orderService.updateOrderStatus(orderId, status)
+      // refresh orders
+      await get().fetchMyOrders()
+      return true
+    } catch (error) {
+      console.error(error)
+      return false
+    }
+  }
+}))
 
 export default useOrderStore

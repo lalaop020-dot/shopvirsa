@@ -3,6 +3,7 @@ import { ShieldCheck, Lock, ArrowRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
+import api from '../api/axios'
 import toast from 'react-hot-toast'
 
 export default function TransactionPasswordSetup() {
@@ -17,10 +18,18 @@ export default function TransactionPasswordSetup() {
     if (password !== confirmPassword) return toast.error('Passwords do not match')
 
     setIsLoading(true)
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    setIsLoading(false)
-    toast.success('Transaction password set successfully!')
-    navigate('/seller/dashboard')
+    try {
+      await api.put('/auth/transaction-password', {
+        password: password,
+        confirmPassword: confirmPassword
+      })
+      toast.success('Transaction password set successfully!')
+      navigate('/seller/dashboard')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to set transaction password')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

@@ -1,17 +1,31 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, MessageCircle, Clock, CheckCircle2, AlertCircle, Search } from 'lucide-react'
 import { Button } from '../../components/common/Button'
 import { Card } from '../../components/common/Card'
 import { Input } from '../../components/common/Input'
+import api from '../../api/axios'
 import toast from 'react-hot-toast'
 
 export default function SupportTickets() {
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [tickets, setTickets] = useState([
-    { id: 'TKT-1001', subject: 'Wallet withdrawal pending', status: 'Open', priority: 'High', date: '2 mins ago' },
-    { id: 'TKT-1002', subject: 'Inquiry about Gold package', status: 'Closed', priority: 'Medium', date: '2 days ago' },
-    { id: 'TKT-1003', subject: 'API connection issues', status: 'In Progress', priority: 'Critical', date: '1 hour ago' },
-  ])
+  const [tickets, setTickets] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchTickets = async () => {
+    try {
+      const res = await api.get('/support/tickets')
+      const data = Array.isArray(res.data) ? res.data : (res.data?.items || [])
+      setTickets(data)
+    } catch (err) {
+      console.error('Failed to fetch tickets:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchTickets()
+  }, [])
 
   // Form states
   const [subject, setSubject] = useState('')
@@ -20,27 +34,29 @@ export default function SupportTickets() {
   const [category, setCategory] = useState('Wallet/Payments')
   const [searchTerm, setSearchTerm] = useState('')
 
-  const handleCreateTicket = (e) => {
+  const handleCreateTicket = async (e) => {
     e.preventDefault()
     if (!subject.trim() || !details.trim()) {
       toast.error('Please fill in all fields')
       return
     }
 
-    const newTicket = {
-      id: `TKT-${Math.floor(1004 + Math.random() * 9000)}`,
-      subject,
-      status: 'Open',
-      priority,
-      date: 'Just now'
+    try {
+      await api.post('/support/tickets', {
+        subject,
+        details,
+        category,
+        priority
+      })
+      toast.success('Ticket created successfully!')
+      setSubject('')
+      setDetails('')
+      setPriority('Medium')
+      setIsModalOpen(false)
+      fetchTickets() // Refresh the list
+    } catch (err) {
+      toast.error('Failed to create ticket')
     }
-
-    setTickets([newTicket, ...tickets])
-    toast.success('Ticket created successfully!')
-    setSubject('')
-    setDetails('')
-    setPriority('Medium')
-    setIsModalOpen(false)
   }
 
   const filteredTickets = tickets.filter(t => 
@@ -118,14 +134,19 @@ export default function SupportTickets() {
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-border">
-              {filteredTickets.map((t) => (
+              {loading && (
+                <tr>
+                  <td colSpan="5" className="text-center py-10 text-slate-500">Loading tickets...</td>
+                </tr>
+              )}
+              {!loading && filteredTickets.map((t) => (
                 <tr key={t.id} className="hover:bg-white/5 transition-colors cursor-pointer group">
-                  <td className="px-6 py-4 font-mono text-sm group-hover:text-primary">{t.id}</td>
+                  <td className="px-6 py-4 font-mono text-sm group-hover:text-primary">TKT-{t.id}</td>
                   <td className="px-6 py-4 text-sm font-medium">{t.subject}</td>
                   <td className="px-6 py-4">
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                      t.status === 'Open' ? 'bg-blue-500/10 text-blue-500' :
-                      t.status === 'Closed' ? 'bg-slate-500/10 text-slate-500' :
+                      t.status === 'Open' || t.status === 'open' ? 'bg-blue-500/10 text-blue-500' :
+                      t.status === 'Closed' || t.status === 'closed' ? 'bg-slate-500/10 text-slate-500' :
                       'bg-accent-gold/10 text-accent-gold'
                     }`}>
                       {t.status}
@@ -134,16 +155,18 @@ export default function SupportTickets() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-1.5 text-xs text-slate-400">
                       <div className={`w-1.5 h-1.5 rounded-full ${
-                        t.priority === 'Critical' ? 'bg-red-500 shadow-lg shadow-red-500/50' :
-                        t.priority === 'High' ? 'bg-orange-500' : 'bg-slate-500'
+                        t.priority === 'Critical' || t.priority === 'critical' ? 'bg-red-500 shadow-lg shadow-red-500/50' :
+                        t.priority === 'High' || t.priority === 'high' ? 'bg-orange-500' : 'bg-slate-500'
                       }`} />
                       {t.priority}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-xs text-slate-500">{t.date}</td>
+                  <td className="px-6 py-4 text-xs text-slate-500">
+                    {t.created_at ? new Date(t.created_at).toLocaleDateString() : t.date}
+                  </td>
                 </tr>
               ))}
-              {filteredTickets.length === 0 && (
+              {!loading && filteredTickets.length === 0 && (
                 <tr>
                   <td colSpan="5" className="text-center py-10 text-slate-500">
                     No tickets found.

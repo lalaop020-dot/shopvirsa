@@ -1,24 +1,22 @@
-import { useState } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, History, Plus, Image as ImageIcon, Copy, Check } from 'lucide-react'
 import { Button } from '../../components/common/Button'
 import { Card } from '../../components/common/Card'
 import { Input } from '../../components/common/Input'
-import useAuthStore from '../../store/useAuthStore'
 import usePlatformStore, { DEFAULT_BALANCE } from '../../store/usePlatformStore'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
-import { useMemo } from 'react'
+
+// Admin USDT address - hardcoded since it comes from the backend profile/settings
+const ADMIN_USDT_WALLET = 'TY6b8f9G2h7L1m5N3k8R0q4Wp1Xz9VcV7b'
 
 export default function Wallet() {
-  const { user } = useAuthStore()
-  const email = user?.email || 'seller@demo.com'
-  const adminWallets = useAuthStore((state) => state.adminWallets) || { usdt: 'TY6b8f9G2h7L1m5N3k8R0q4Wp1Xz9VcV7b' }
-  
-  const balances = usePlatformStore((state) => state.balances[email] || DEFAULT_BALANCE)
-  const allTransactions = usePlatformStore((state) => state.transactions)
-  const transactions = useMemo(() => allTransactions.filter(t => t.sellerEmail === email), [allTransactions, email])
-  const addDepositRequest = usePlatformStore((state) => state.addDepositRequest)
-  const addWithdrawalRequest = usePlatformStore((state) => state.addWithdrawalRequest)
+  const balanceData = usePlatformStore((state) => state.balance) || DEFAULT_BALANCE
+  const transactions = usePlatformStore((state) => state.transactions) || []
+  const fetchBalance = usePlatformStore((state) => state.fetchBalance)
+  const fetchMyTransactions = usePlatformStore((state) => state.fetchMyTransactions)
+  const submitDeposit = usePlatformStore((state) => state.submitDeposit)
+  const requestWithdrawal = usePlatformStore((state) => state.requestWithdrawal)
 
   const [isDepositModalOpen, setIsDepositModalOpen] = useState(false)
   const [isWithdrawModalOpen, setIsWithdrawModalOpen] = useState(false)
@@ -27,43 +25,63 @@ export default function Wallet() {
   // Form states
   const [depositAmount, setDepositAmount] = useState('')
   const [depositTxid, setDepositTxid] = useState('')
+  const [depositProof, setDepositProof] = useState(null)
+  const fileInputRef = useRef(null)
   
   const [withdrawAmount, setWithdrawAmount] = useState('')
   const [withdrawAddress, setWithdrawAddress] = useState('')
   const [withdrawPass, setWithdrawPass] = useState('')
 
+  useEffect(() => {
+    fetchBalance()
+    fetchMyTransactions()
+  }, [fetchBalance, fetchMyTransactions])
+
+  const balance = parseFloat(balanceData.balance || 0)
+  const withdrawable = parseFloat(balanceData.withdrawable || 0)
+  const pendingDeposit = parseFloat(balanceData.pendingDeposit || balanceData.pending_deposit || 0)
+  const totalWithdrawn = parseFloat(balanceData.totalWithdrawn || balanceData.total_withdrawn || 0)
+
   const stats = [
-    { label: 'Total Balance', value: `$${balances.balance.toFixed(2)}`, icon: WalletIcon, color: 'text-primary' },
-    { label: 'Withdrawable', value: `$${balances.withdrawable.toFixed(2)}`, icon: ArrowUpRight, color: 'text-green-500' },
-    { label: 'Pending Deposit', value: `$${balances.pendingDeposit.toFixed(2)}`, icon: History, color: 'text-accent-gold' },
-    { label: 'Total Withdrawn', value: `$${balances.totalWithdrawn.toFixed(2)}`, icon: ArrowDownLeft, color: 'text-red-500' },
+    { label: 'Total Balance', value: `$${balance.toFixed(2)}`, icon: WalletIcon, color: 'text-primary' },
+    { label: 'Withdrawable', value: `$${withdrawable.toFixed(2)}`, icon: ArrowUpRight, color: 'text-green-500' },
+    { label: 'Pending Deposit', value: `$${pendingDeposit.toFixed(2)}`, icon: History, color: 'text-accent-gold' },
+    { label: 'Total Withdrawn', value: `$${totalWithdrawn.toFixed(2)}`, icon: ArrowDownLeft, color: 'text-red-500' },
   ]
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(adminWallets.usdt)
+    navigator.clipboard.writeText(ADMIN_USDT_WALLET)
     setCopied(true)
     toast.success('Wallet address copied!')
     setTimeout(() => setCopied(false), 2000)
   }
 
-  const handleDepositSubmit = (e) => {
+  const handleDepositSubmit = async (e) => {
     e.preventDefault()
     if (!depositAmount || parseFloat(depositAmount) <= 0) {
       toast.error('Invalid deposit amount')
       return
     }
-    if (!depositTxid) {
-      toast.error('Transaction ID is required')
-      return
+
+    const formData = new FormData()
+    formData.append('amount', parseFloat(depositAmount))
+    if (depositTxid) formData.append('txHash', depositTxid)
+    formData.append('method', 'USDT (TRC20)')
+    if (depositProof) formData.append('proof', depositProof)
+
+    const success = await submitDeposit(formData)
+    if (success) {
+      toast.success('Deposit request submitted! Waiting for admin approval.')
+      setDepositAmount('')
+      setDepositTxid('')
+      setDepositProof(null)
+      setIsDepositModalOpen(false)
+    } else {
+      toast.error('Failed to submit deposit request')
     }
-    addDepositRequest(email, depositAmount, depositTxid)
-    toast.success('Deposit request submitted! Waiting for admin approval.')
-    setDepositAmount('')
-    setDepositTxid('')
-    setIsDepositModalOpen(false)
   }
 
-  const handleWithdrawSubmit = (e) => {
+  const handleWithdrawSubmit = async (e) => {
     e.preventDefault()
     const amt = parseFloat(withdrawAmount)
     if (!withdrawAmount || amt <= 0) {
@@ -74,12 +92,18 @@ export default function Wallet() {
       toast.error('Destination wallet address is required')
       return
     }
-    if (amt > balances.withdrawable) {
+    if (amt > withdrawable) {
       toast.error('Insufficient withdrawable balance')
       return
     }
 
-    const success = addWithdrawalRequest(email, amt, withdrawAddress)
+    const success = await requestWithdrawal({
+      amount: amt,
+      walletAddress: withdrawAddress,
+      transactionPassword: withdrawPass || null,
+      method: 'USDT TRC20 / BTC'
+    })
+
     if (success) {
       toast.success('Withdrawal request submitted! Admin will process it shortly.')
       setWithdrawAmount('')
@@ -87,7 +111,7 @@ export default function Wallet() {
       setWithdrawPass('')
       setIsWithdrawModalOpen(false)
     } else {
-      toast.error('Withdrawal failed. Please check your balance.')
+      toast.error('Withdrawal failed. Please check your balance or try again.')
     }
   }
 
@@ -133,37 +157,47 @@ export default function Wallet() {
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-border">
-              {transactions.map((tx) => (
-                <tr key={tx.id} className="hover:bg-dark-bg/50 transition-colors">
-                  <td className="px-6 py-4 font-mono text-sm">{tx.id}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                      tx.type === 'Deposit' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
-                    }`}>
-                      {tx.type}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 font-bold">
-                    {tx.type === 'Deposit' ? '+' : '-'} ${tx.amount.toFixed(2)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`flex items-center gap-1.5 ${
-                      tx.status === 'Pending' ? 'text-accent-gold' :
-                      tx.status === 'Approved' ? 'text-green-500' : 'text-red-500'
-                    }`}>
-                      <div className={`w-2 h-2 rounded-full ${
-                        tx.status === 'Pending' ? 'bg-accent-gold animate-pulse' :
-                        tx.status === 'Approved' ? 'bg-green-500' : 'bg-red-500'
-                      }`} />
-                      {tx.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-400 text-sm">{tx.date}</td>
-                  <td className="px-6 py-4 font-mono text-xs max-w-[200px] truncate" title={tx.txHash || tx.walletAddress}>
-                    {tx.type === 'Deposit' ? `TXID: ${tx.txHash}` : `To: ${tx.walletAddress}`}
-                  </td>
-                </tr>
-              ))}
+              {transactions.map((tx) => {
+                const txType = tx.type || tx.tx_type || ''
+                const txStatus = tx.status || ''
+                const txAmount = parseFloat(tx.amount || 0)
+                const txDate = tx.date || tx.created_at
+                return (
+                  <tr key={tx.id} className="hover:bg-dark-bg/50 transition-colors">
+                    <td className="px-6 py-4 font-mono text-sm">{tx.id}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
+                        txType.toLowerCase() === 'deposit' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+                      }`}>
+                        {txType}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 font-bold">
+                      {txType.toLowerCase() === 'deposit' ? '+' : '-'} ${txAmount.toFixed(2)}
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`flex items-center gap-1.5 ${
+                        txStatus.toLowerCase() === 'pending' ? 'text-accent-gold' :
+                        txStatus.toLowerCase() === 'approved' ? 'text-green-500' : 'text-red-500'
+                      }`}>
+                        <div className={`w-2 h-2 rounded-full ${
+                          txStatus.toLowerCase() === 'pending' ? 'bg-accent-gold animate-pulse' :
+                          txStatus.toLowerCase() === 'approved' ? 'bg-green-500' : 'bg-red-500'
+                        }`} />
+                        {txStatus}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-400 text-sm">
+                      {txDate ? new Date(txDate).toLocaleDateString() : '—'}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs max-w-[200px] truncate" title={tx.txHash || tx.tx_hash || tx.walletAddress || tx.wallet_address}>
+                      {txType.toLowerCase() === 'deposit'
+                        ? `TXID: ${tx.txHash || tx.tx_hash || '—'}`
+                        : `To: ${tx.walletAddress || tx.wallet_address || '—'}`}
+                    </td>
+                  </tr>
+                )
+              })}
               {transactions.length === 0 && (
                 <tr>
                   <td colSpan="6" className="text-center py-10 text-slate-500">
@@ -189,7 +223,7 @@ export default function Wallet() {
             <form onSubmit={handleDepositSubmit} className="space-y-6">
               <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl mb-6">
                 <div className="text-sm font-bold text-primary mb-1">USDT Wallet Address (TRC20)</div>
-                <div className="font-mono text-sm break-all">{adminWallets.usdt}</div>
+                <div className="font-mono text-sm break-all">{ADMIN_USDT_WALLET}</div>
                 <button 
                   type="button" 
                   onClick={handleCopy}
@@ -211,18 +245,29 @@ export default function Wallet() {
               />
               <Input 
                 label="Transaction ID (TXID)" 
-                placeholder="Enter the TX hash" 
+                placeholder="Enter the TX hash (optional)" 
                 value={depositTxid}
                 onChange={(e) => setDepositTxid(e.target.value)}
-                required 
               />
               
               <div className="space-y-2">
                 <label className="text-sm font-medium text-slate-300">Upload Screenshot (Proof)</label>
-                <div className="border border-dashed border-dark-border rounded-xl p-6 text-center hover:border-primary transition-all cursor-pointer group">
+                <div 
+                  className="border border-dashed border-dark-border rounded-xl p-6 text-center hover:border-primary transition-all cursor-pointer group"
+                  onClick={() => fileInputRef.current?.click()}
+                >
                   <ImageIcon className="w-8 h-8 text-slate-500 mx-auto mb-2 group-hover:text-primary transition-all" />
-                  <div className="text-xs text-slate-400">Click to upload or drag and drop</div>
-                  <div className="text-[10px] text-slate-600 mt-0.5">PNG, JPG up to 5MB (Mocked proof)</div>
+                  <div className="text-xs text-slate-400">
+                    {depositProof ? depositProof.name : 'Click to upload or drag and drop'}
+                  </div>
+                  <div className="text-[10px] text-slate-600 mt-0.5">PNG, JPG up to 5MB</div>
+                  <input 
+                    ref={fileInputRef}
+                    type="file" 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={(e) => setDepositProof(e.target.files[0])}
+                  />
                 </div>
               </div>
 
@@ -248,7 +293,7 @@ export default function Wallet() {
             <form onSubmit={handleWithdrawSubmit} className="space-y-6">
               <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl mb-6">
                 <div className="text-sm text-red-400 font-bold mb-1">Available to Withdraw</div>
-                <div className="text-2xl font-bold">${balances.withdrawable.toFixed(2)}</div>
+                <div className="text-2xl font-bold">${withdrawable.toFixed(2)}</div>
               </div>
 
               <Input 
@@ -275,7 +320,6 @@ export default function Wallet() {
                   type="password" 
                   value={withdrawPass}
                   onChange={(e) => setWithdrawPass(e.target.value)}
-                  required 
                   className="tracking-widest"
                 />
                 <p className="text-[10px] text-slate-500">Required for security verification.</p>

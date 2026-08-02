@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Trash2, Edit2, Play, Download, Search, AlertTriangle, FileJson, CheckCircle } from 'lucide-react'
 import { Card } from '../../components/common/Card'
 import { Button } from '../../components/common/Button'
@@ -9,13 +9,16 @@ import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 
 export default function AdminStoreroom() {
-  const storeroomProducts = useProductStore((state) => state.storeroomProducts)
+  const storeroomProducts = useProductStore((state) => state.storeroomProducts) || []
+  const fetchStoreroomProducts = useProductStore((state) => state.fetchStoreroomProducts)
   const addStoreroomProduct = useProductStore((state) => state.addStoreroomProduct)
   const editStoreroomProduct = useProductStore((state) => state.editStoreroomProduct)
   const removeStoreroomProduct = useProductStore((state) => state.removeStoreroomProduct)
-  
-  const crawlProductsSimulation = useProductStore((state) => state.crawlProductsSimulation)
   const bulkUploadProducts = useProductStore((state) => state.bulkUploadProducts)
+  
+  useEffect(() => {
+    fetchStoreroomProducts()
+  }, [fetchStoreroomProducts])
 
   const [searchTerm, setSearchTerm] = useState('')
   
@@ -57,7 +60,7 @@ export default function AdminStoreroom() {
     setProductModalOpen(true)
   }
 
-  const handleSaveProduct = (e) => {
+  const handleSaveProduct = async (e) => {
     e.preventDefault()
     if (!name || !price || !category || !stock) {
       toast.error('Please fill in required fields')
@@ -73,38 +76,46 @@ export default function AdminStoreroom() {
       description
     }
 
+    let success = false
     if (editingProduct) {
-      editStoreroomProduct(editingProduct.id, payload)
-      toast.success('Product updated in global storeroom!')
+      success = await editStoreroomProduct(editingProduct.id, payload)
+      if (success) toast.success('Product updated in global storeroom!')
     } else {
-      addStoreroomProduct(payload)
-      toast.success('New product registered in global storeroom!')
+      success = await addStoreroomProduct(payload)
+      if (success) toast.success('New product registered in global storeroom!')
     }
 
-    setProductModalOpen(false)
+    if (success) {
+      setProductModalOpen(false)
+    } else {
+      toast.error('Operation failed')
+    }
   }
 
-  const handleDelete = (id, prodName) => {
+  const handleDelete = async (id, prodName) => {
     if (window.confirm(`WARNING: Deleting "${prodName}" will delete it from all active seller storefronts. Continue?`)) {
-      removeStoreroomProduct(id)
-      toast.success(`Removed "${prodName}" and cleared from seller inventories.`)
+      const success = await removeStoreroomProduct(id)
+      if (success) {
+        toast.success(`Removed "${prodName}" and cleared from seller inventories.`)
+      } else {
+        toast.error('Failed to delete product')
+      }
     }
   }
 
   const handleCrawlerClick = () => {
-    crawlProductsSimulation()
-    toast.success('Simulation: Web Crawler fetched 3 products!')
+    toast.error('Crawler feature is currently disabled')
   }
 
-  const handleBulkSubmit = (e) => {
+  const handleBulkSubmit = async (e) => {
     e.preventDefault()
-    const success = bulkUploadProducts(bulkJson)
+    const success = await bulkUploadProducts(bulkJson)
     if (success) {
       toast.success('Bulk products uploaded successfully!')
       setBulkJson('')
       setBulkModalOpen(false)
     } else {
-      toast.error('Invalid JSON structure. Please check and retry.')
+      toast.error('Invalid JSON structure or upload failed. Please check and retry.')
     }
   }
 

@@ -1,23 +1,26 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, Search, Edit2, Trash2, ExternalLink, ShieldCheck } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/common/Button'
 import { Card } from '../../components/common/Card'
 import { Input } from '../../components/common/Input'
 import { formatCurrency } from '../../utils/formatters'
-import useAuthStore from '../../store/useAuthStore'
 import { useProductStore } from '../../store/useProductStore'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 
 export default function MyProducts() {
   const navigate = useNavigate()
-  const { user } = useAuthStore()
-  const sellerEmail = user?.email || 'seller@demo.com'
 
-  const sellerProducts = useProductStore((state) => state.sellerProducts[sellerEmail]) || []
+  const sellerProducts = useProductStore((state) => state.sellerProducts) || []
+  const fetchSellerProducts = useProductStore((state) => state.fetchSellerProducts)
   const removeSellerProduct = useProductStore((state) => state.removeSellerProduct)
   const updateSellerProduct = useProductStore((state) => state.updateSellerProduct)
+  const isLoading = useProductStore((state) => state.isLoading)
+
+  useEffect(() => {
+    fetchSellerProducts()
+  }, [fetchSellerProducts])
 
   const [searchTerm, setSearchTerm] = useState('')
   const [editingProduct, setEditingProduct] = useState(null)
@@ -26,9 +29,9 @@ export default function MyProducts() {
   const [editPrice, setEditPrice] = useState('')
   const [editStock, setEditStock] = useState('')
 
-  const handleDelete = (id, name) => {
+  const handleDelete = async (id, name) => {
     if (window.confirm(`Are you sure you want to remove ${name} from your store?`)) {
-      removeSellerProduct(sellerEmail, id)
+      await removeSellerProduct(null, id)
       toast.success(`${name} removed from your storefront`)
     }
   }
@@ -39,7 +42,7 @@ export default function MyProducts() {
     setEditStock(product.stock)
   }
 
-  const handleUpdateSubmit = (e) => {
+  const handleUpdateSubmit = async (e) => {
     e.preventDefault()
     if (!editPrice || parseFloat(editPrice) < 0) {
       toast.error('Invalid price amount')
@@ -50,14 +53,18 @@ export default function MyProducts() {
       return
     }
 
-    updateSellerProduct(sellerEmail, editingProduct.id, {
+    const success = await updateSellerProduct(null, editingProduct.id, {
       price: parseFloat(editPrice),
       stock: parseInt(editStock),
       status: parseInt(editStock) === 0 ? 'Out of Stock' : 'Active'
     })
 
-    toast.success('Product configurations updated successfully!')
-    setEditingProduct(null)
+    if (success) {
+      toast.success('Product configurations updated successfully!')
+      setEditingProduct(null)
+    } else {
+      toast.error('Failed to update product')
+    }
   }
 
   const filteredProducts = sellerProducts.filter(p => 

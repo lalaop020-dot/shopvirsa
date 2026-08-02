@@ -1,19 +1,46 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Check, X, ShieldAlert, Eye, Search } from 'lucide-react'
 import { Button } from '../../components/common/Button'
 import { Card } from '../../components/common/Card'
 import { Input } from '../../components/common/Input'
+import usePlatformStore from '../../store/usePlatformStore'
 import toast from 'react-hot-toast'
 
 
 export default function SellerApprovals() {
-  const [shops, setShops] = useState([])
   const [searchTerm, setSearchTerm] = useState('')
 
-  const handleAction = (id, action) => {
-    setShops(shops.filter(shop => shop.id !== id))
-    toast.success(`Shop ${action} successfully!`)
+  const pendingSellers = usePlatformStore((state) => state.pendingSellers) || []
+  const allSellers = usePlatformStore((state) => state.allSellers) || []
+  const fetchPendingSellers = usePlatformStore((state) => state.fetchPendingSellers)
+  const fetchAllSellers = usePlatformStore((state) => state.fetchAllSellers)
+  const approveSeller = usePlatformStore((state) => state.approveSeller)
+  const rejectSeller = usePlatformStore((state) => state.rejectSeller)
+
+  useEffect(() => {
+    fetchPendingSellers()
+    fetchAllSellers()
+  }, [fetchPendingSellers, fetchAllSellers])
+
+  const handleAction = async (id, action) => {
+    let success = false
+    if (action === 'Approved') {
+      success = await approveSeller(id)
+    } else {
+      success = await rejectSeller(id)
+    }
+    if (success) {
+      toast.success(`Seller ${action} successfully!`)
+    } else {
+      toast.error(`Failed to ${action.toLowerCase()} seller`)
+    }
   }
+
+  // Show pending first, then all approved sellers
+  const filteredPending = pendingSellers.filter(s =>
+    (s.shop_name || s.shopName || s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.email || '').toLowerCase().includes(searchTerm.toLowerCase())
+  )
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -25,7 +52,7 @@ export default function SellerApprovals() {
       <div className="flex gap-4">
         <div className="relative flex-grow">
           <Input 
-            placeholder="Search pending shops..." 
+            placeholder="Search pending sellers..." 
             className="pl-10"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -35,36 +62,42 @@ export default function SellerApprovals() {
       </div>
 
       <Card className="p-0 overflow-hidden">
+        <div className="p-6 border-b border-dark-border flex items-center justify-between">
+          <h3 className="font-bold flex items-center gap-2 text-accent-gold">
+            <ShieldAlert className="w-5 h-5" /> Pending Approvals ({filteredPending.length})
+          </h3>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-dark-bg text-slate-400 text-sm">
               <tr>
                 <th className="px-6 py-4 font-medium">Shop Name</th>
                 <th className="px-6 py-4 font-medium">Owner</th>
+                <th className="px-6 py-4 font-medium">Email</th>
                 <th className="px-6 py-4 font-medium">Date Applied</th>
                 <th className="px-6 py-4 font-medium">Status</th>
                 <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-border">
-              {shops.map((shop) => (
-                <tr key={shop.id} className="hover:bg-dark-bg/50 transition-colors">
-                  <td className="px-6 py-4 font-bold">{shop.name}</td>
-                  <td className="px-6 py-4 text-slate-300">{shop.owner}</td>
-                  <td className="px-6 py-4 text-slate-400 text-sm">{shop.date}</td>
+              {filteredPending.map((seller) => (
+                <tr key={seller.id} className="hover:bg-dark-bg/50 transition-colors">
+                  <td className="px-6 py-4 font-bold">{seller.shop_name || seller.shopName || '—'}</td>
+                  <td className="px-6 py-4 text-slate-300">{seller.name}</td>
+                  <td className="px-6 py-4 text-slate-400 text-sm">{seller.email}</td>
+                  <td className="px-6 py-4 text-slate-400 text-sm">
+                    {seller.created_at ? new Date(seller.created_at).toLocaleDateString() : '—'}
+                  </td>
                   <td className="px-6 py-4">
                     <span className="px-2 py-1 rounded-full text-[10px] font-bold uppercase bg-accent-gold/10 text-accent-gold">
-                      {shop.status}
+                      Pending
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right flex justify-end gap-2">
-                    <Button variant="ghost" size="sm" title="View Details">
-                      <Eye className="w-4 h-4" />
-                    </Button>
                     <Button 
                       variant="secondary" 
                       size="sm" 
-                      onClick={() => handleAction(shop.id, 'Approved')}
+                      onClick={() => handleAction(seller.id, 'Approved')}
                       className="bg-green-600 hover:bg-green-700"
                     >
                       <Check className="w-4 h-4" /> Approve
@@ -72,7 +105,7 @@ export default function SellerApprovals() {
                     <Button 
                       variant="danger" 
                       size="sm"
-                      onClick={() => handleAction(shop.id, 'Rejected')}
+                      onClick={() => handleAction(seller.id, 'Rejected')}
                     >
                       <X className="w-4 h-4" /> Reject
                     </Button>
@@ -81,7 +114,7 @@ export default function SellerApprovals() {
               ))}
             </tbody>
           </table>
-          {shops.length === 0 && (
+          {filteredPending.length === 0 && (
             <div className="text-center py-20 text-slate-500">
               No pending seller requests at the moment.
             </div>

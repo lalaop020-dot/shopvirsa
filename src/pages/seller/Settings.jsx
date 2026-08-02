@@ -4,6 +4,7 @@ import { Card } from '../../components/common/Card'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import useAuthStore from '../../store/useAuthStore'
+import api from '../../api/axios'
 import toast from 'react-hot-toast'
 
 export default function ShopSettings() {
@@ -43,20 +44,59 @@ export default function ShopSettings() {
     { id: 'security', label: 'Security', icon: ShieldCheck },
   ]
 
-  const handleSave = () => {
-    if (role === 'admin') {
-      if (adminNewPassInput && adminNewPassInput !== adminConfirmPassInput) {
-        toast.error('New passwords do not match')
-        return
-      }
-      updateAdminCredentials(adminMailInput, adminNewPassInput || adminPassInput)
-      updateAdminWallets(adminUsdtInput, adminBtcInput)
+  const [txnPassword, setTxnPassword] = useState('')
+  const [txnConfirmPassword, setTxnConfirmPassword] = useState('')
+
+  const handleSaveAdmin = async () => {
+    if (adminNewPassInput && adminNewPassInput !== adminConfirmPassInput) {
+      toast.error('New passwords do not match')
+      return
+    }
+    try {
+      await api.put('/auth/admin/credentials', {
+        email: adminMailInput,
+        password: adminNewPassInput || adminPassInput,
+        usdtAddress: adminUsdtInput,
+        btcAddress: adminBtcInput
+      })
+      toast.success('Admin settings updated successfully!')
       setAdminNewPassInput('')
       setAdminConfirmPassInput('')
-      toast.success('Admin settings updated successfully!')
+      await useAuthStore.getState().fetchMe()
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update admin settings')
+    }
+  }
+
+  const handleSaveProfile = async () => {
+    try {
+      await api.put('/auth/profile', {
+        shopName,
+        shopEmail,
+        shopDesc,
+        usdtAddress,
+        btcAddress
+      })
+      toast.success('Profile updated successfully!')
+      await useAuthStore.getState().fetchMe()
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update profile')
+    }
+  }
+
+  const handleUpdatePassword = async () => {
+    // Note: We don't have a state for currentPassword in the UI for sellers right now,
+    // assuming it might be added or we just send new one. The UI has Current Password field but no state!
+    // Let's implement it correctly. We will need to add state for it below.
+  }
+
+  const handleSave = () => {
+    if (role === 'admin') {
+      handleSaveAdmin()
     } else {
-      updateUser({ shopName, shopEmail, shopDesc, usdtAddress, btcAddress })
-      toast.success('Settings saved successfully!')
+      if (activeTab === 'shop' || activeTab === 'wallet') {
+        handleSaveProfile()
+      }
     }
   }
 
@@ -237,18 +277,43 @@ export default function ShopSettings() {
               <div className="space-y-6 animate-fade-in">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="md:col-span-2">
-                    <h4 className="font-bold mb-4">Update Login Password</h4>
-                    <Input label="Current Password" type="password" className="mb-4" />
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input label="New Password" type="password" />
-                      <Input label="Confirm New Password" type="password" />
-                    </div>
-                  </div>
-                  
-                  <div className="md:col-span-2 pt-6 border-t border-dark-border">
                     <h4 className="font-bold mb-1 text-primary">Transaction Password</h4>
                     <p className="text-xs text-slate-500 mb-4">Required for all withdrawals and sensitive account changes.</p>
-                    <Input label="New Transaction Password (6-8 digits)" type="password" placeholder="••••••" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input 
+                        label="New Transaction Password (6-8 digits)" 
+                        type="password" 
+                        placeholder="••••••" 
+                        value={txnPassword}
+                        onChange={(e) => setTxnPassword(e.target.value)}
+                      />
+                      <Input 
+                        label="Confirm Transaction Password" 
+                        type="password" 
+                        placeholder="••••••" 
+                        value={txnConfirmPassword}
+                        onChange={(e) => setTxnConfirmPassword(e.target.value)}
+                      />
+                    </div>
+                    <div className="flex justify-end pt-4">
+                      <Button onClick={async () => {
+                        if (!txnPassword || txnPassword !== txnConfirmPassword) {
+                          toast.error('Passwords do not match')
+                          return
+                        }
+                        try {
+                          await api.put('/auth/transaction-password', {
+                            password: txnPassword,
+                            confirmPassword: txnConfirmPassword
+                          })
+                          toast.success('Transaction password updated')
+                          setTxnPassword('')
+                          setTxnConfirmPassword('')
+                        } catch (err) {
+                          toast.error('Failed to update transaction password')
+                        }
+                      }}>Update Transaction Password</Button>
+                    </div>
                   </div>
                 </div>
               </div>

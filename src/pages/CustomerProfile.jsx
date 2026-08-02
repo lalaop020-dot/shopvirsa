@@ -4,6 +4,7 @@ import { Card } from '../components/common/Card'
 import { Input } from '../components/common/Input'
 import { Button } from '../components/common/Button'
 import useAuthStore from '../store/useAuthStore'
+import api from '../api/axios'
 import toast from 'react-hot-toast'
 
 export default function CustomerProfile() {
@@ -15,13 +16,18 @@ export default function CustomerProfile() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  const handleSaveProfile = (e) => {
+  const handleSaveProfile = async (e) => {
     e.preventDefault()
-    updateUser({ name, email })
-    toast.success('Profile updated successfully!')
+    try {
+      await api.put('/auth/profile', { name, email })
+      await useAuthStore.getState().fetchMe()
+      toast.success('Profile updated successfully!')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update profile')
+    }
   }
 
-  const handleChangePassword = (e) => {
+  const handleChangePassword = async (e) => {
     e.preventDefault()
     if (!currentPassword || !newPassword || !confirmPassword) {
       toast.error('All password fields are required')
@@ -31,11 +37,18 @@ export default function CustomerProfile() {
       toast.error('New passwords do not match')
       return
     }
-    // Simulate password change
-    toast.success('Password updated successfully!')
-    setCurrentPassword('')
-    setNewPassword('')
-    setConfirmPassword('')
+    try {
+      await api.put('/auth/password', {
+        currentPassword,
+        newPassword
+      })
+      toast.success('Password updated successfully!')
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Failed to update password')
+    }
   }
 
   return (

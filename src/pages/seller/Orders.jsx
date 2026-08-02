@@ -1,47 +1,52 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Filter, Search, Eye, Truck, CheckCircle2, Clock, XCircle, ShoppingBag } from 'lucide-react'
 import { Card } from '../../components/common/Card'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
 import useOrderStore from '../../store/useOrderStore'
-import useAuthStore from '../../store/useAuthStore'
 
 export default function SellerOrders() {
   const [searchTerm, setSearchTerm] = useState('')
-  const user = useAuthStore(state => state.user)
-  const getOrdersForSeller = useOrderStore(state => state.getOrdersForSeller)
+  const orders = useOrderStore(state => state.orders) || []
+  const fetchSellerOrders = useOrderStore(state => state.fetchSellerOrders)
+  const updateOrderStatus = useOrderStore(state => state.updateOrderStatus)
+  const isLoading = useOrderStore(state => state.isLoading)
 
-  const rawOrders = user?.email ? getOrdersForSeller(user.email) : []
-  const orders = rawOrders.map(o => ({
+  useEffect(() => {
+    fetchSellerOrders()
+  }, [fetchSellerOrders])
+
+  const mappedOrders = orders.map(o => ({
     id: o.id,
-    customer: o.shippingAddress?.name || o.shippingAddress?.email || 'Unknown',
-    items: o.items.reduce((sum, i) => sum + i.quantity, 0),
-    total: o.total,
-    date: new Date(o.createdAt).toLocaleDateString(),
-    status: o.status
+    customer: o.shippingAddress?.name || o.shipping_address?.name || o.customer_name || 'Unknown',
+    items: (o.items || []).reduce((sum, i) => sum + (i.quantity || 1), 0),
+    total: parseFloat(o.total || 0),
+    date: o.createdAt || o.created_at ? new Date(o.createdAt || o.created_at).toLocaleDateString() : '—',
+    status: o.status || 'Processing',
+    rawOrder: o
   }))
 
-  const filteredOrders = orders.filter(order =>
-    order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredOrders = mappedOrders.filter(order =>
+    String(order.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.customer.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const getStatusStyle = (status) => {
-    switch (status) {
-      case 'Processing': return 'bg-blue-500/10 text-blue-500'
-      case 'Shipped': return 'bg-accent-gold/10 text-accent-gold'
-      case 'Delivered': return 'bg-green-500/10 text-green-500'
-      case 'Cancelled': return 'bg-red-500/10 text-red-500'
+    switch (status?.toLowerCase()) {
+      case 'processing': return 'bg-blue-500/10 text-blue-500'
+      case 'shipped': return 'bg-accent-gold/10 text-accent-gold'
+      case 'delivered': return 'bg-green-500/10 text-green-500'
+      case 'cancelled': return 'bg-red-500/10 text-red-500'
       default: return 'bg-slate-500/10 text-slate-500'
     }
   }
 
   const getStatusIcon = (status) => {
-    switch (status) {
-      case 'Processing': return <Clock className="w-4 h-4" />
-      case 'Shipped': return <Truck className="w-4 h-4" />
-      case 'Delivered': return <CheckCircle2 className="w-4 h-4" />
-      case 'Cancelled': return <XCircle className="w-4 h-4" />
+    switch (status?.toLowerCase()) {
+      case 'processing': return <Clock className="w-4 h-4" />
+      case 'shipped': return <Truck className="w-4 h-4" />
+      case 'delivered': return <CheckCircle2 className="w-4 h-4" />
+      case 'cancelled': return <XCircle className="w-4 h-4" />
       default: return null
     }
   }
@@ -101,7 +106,14 @@ export default function SellerOrders() {
                   </td>
                 </tr>
               ))}
-              {filteredOrders.length === 0 && (
+              {isLoading && (
+                <tr>
+                  <td colSpan="7" className="text-center py-10 text-slate-500">
+                    Loading orders...
+                  </td>
+                </tr>
+              )}
+              {!isLoading && filteredOrders.length === 0 && (
                 <tr>
                   <td colSpan="7" className="text-center py-16">
                     <ShoppingBag className="w-12 h-12 text-slate-600 mx-auto mb-3" />
@@ -117,4 +129,3 @@ export default function SellerOrders() {
     </div>
   )
 }
-

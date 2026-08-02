@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { ShoppingBag, CreditCard, MapPin, CheckCircle2, ChevronRight, Zap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useNavigate, Link } from 'react-router-dom'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
 import { Card } from '../components/common/Card'
 import useCartStore from '../store/useCartStore'
 import useOrderStore from '../store/useOrderStore'
-import usePlatformStore from '../store/usePlatformStore'
+import toast from 'react-hot-toast'
 
 export default function Checkout() {
   const [step, setStep] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [placedOrderId, setPlacedOrderId] = useState(null)
+  const navigate = useNavigate()
 
   const steps = [
     { id: 1, title: 'Shipping', icon: MapPin },
@@ -18,44 +21,41 @@ export default function Checkout() {
     { id: 3, title: 'Review', icon: ShoppingBag },
   ]
 
+  // Shipping form state
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [email, setEmail] = useState('')
+  const [address, setAddress] = useState('')
+  const [city, setCity] = useState('')
+  const [zip, setZip] = useState('')
+
   const nextStep = () => setStep(s => Math.min(s + 1, 3))
   const prevStep = () => setStep(s => Math.max(s - 1, 1))
 
   const handlePlaceOrder = async () => {
     setIsProcessing(true)
     
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // Grab cart items and calculate amounts
     const { items, clearCart } = useCartStore.getState()
     const { createOrder } = useOrderStore.getState()
-    const { addFundsToSeller, addFundsToAdmin } = usePlatformStore.getState()
 
     const shippingInfo = {
-      name: 'John Doe',
-      email: 'john@example.com',
-      address: '123 Main St, New York, NY 10001'
+      name: `${firstName} ${lastName}`.trim() || 'Customer',
+      email: email || null,
+      address: address || '—',
+      city: city || '—',
+      zip: zip || '00000'
     }
 
-    // Create the order with seller info included per item
-    createOrder(items, shippingInfo, 'Crypto (USDT/BTC)')
-
-    // Split and credit payments to respective sellers
-    items.forEach(item => {
-      const amount = item.price * item.quantity
-      if (item.sellerEmail) {
-        addFundsToSeller(item.sellerEmail, amount)
-      } else {
-        addFundsToAdmin(amount)
-      }
-    })
-
-    // Clear cart
-    clearCart()
-
-    setIsProcessing(false)
-    setStep(4) // Success
+    try {
+      const newOrder = await createOrder(items, shippingInfo, 'Crypto (USDT/BTC)')
+      clearCart()
+      setPlacedOrderId(newOrder?.id)
+      setStep(4)
+    } catch (err) {
+      toast.error('Failed to place order. Please try again.')
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   if (step === 4) {
@@ -69,10 +69,12 @@ export default function Checkout() {
           <CheckCircle2 className="w-12 h-12 text-green-500" />
         </motion.div>
         <h1 className="text-4xl font-bold mb-4">Order Placed Successfully!</h1>
-        <p className="text-slate-400 mb-10">Your order #ORD-12345 has been confirmed. You will receive an email shortly.</p>
+        <p className="text-slate-400 mb-10">
+          Order {placedOrderId ? `#${placedOrderId}` : ''} confirmed. You will receive a confirmation shortly.
+        </p>
         <div className="flex gap-4 justify-center">
-          <Button variant="outline">View Orders</Button>
-          <Button>Continue Shopping</Button>
+          <Button variant="outline" onClick={() => navigate('/orders')}>View Orders</Button>
+          <Button onClick={() => navigate('/products')}>Continue Shopping</Button>
         </div>
       </div>
     )
@@ -111,12 +113,12 @@ export default function Checkout() {
               >
                 <h2 className="text-2xl font-bold">Shipping Information</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input label="First Name" placeholder="John" />
-                  <Input label="Last Name" placeholder="Doe" />
-                  <Input label="Email" placeholder="john@example.com" className="md:col-span-2" />
-                  <Input label="Address" placeholder="123 Main St" className="md:col-span-2" />
-                  <Input label="City" placeholder="New York" />
-                  <Input label="ZIP Code" placeholder="10001" />
+                  <Input label="First Name" placeholder="John" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+                  <Input label="Last Name" placeholder="Doe" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+                  <Input label="Email" placeholder="john@example.com" className="md:col-span-2" value={email} onChange={(e) => setEmail(e.target.value)} />
+                  <Input label="Address" placeholder="123 Main St" className="md:col-span-2" value={address} onChange={(e) => setAddress(e.target.value)} required />
+                  <Input label="City" placeholder="New York" value={city} onChange={(e) => setCity(e.target.value)} required />
+                  <Input label="ZIP Code" placeholder="10001" value={zip} onChange={(e) => setZip(e.target.value)} required />
                 </div>
                 <div className="flex justify-end pt-8">
                   <Button onClick={nextStep} className="px-10">Continue to Payment <ChevronRight className="w-4 h-4" /></Button>

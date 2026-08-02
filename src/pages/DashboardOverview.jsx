@@ -1,112 +1,88 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Card } from '../components/common/Card'
 import { Button } from '../components/common/Button'
-import { TrendingUp, TrendingDown, Users, ShoppingCart, DollarSign, Package, AlertCircle, BarChart3, ArrowUpRight, ArrowDownRight, Clock } from 'lucide-react'
+import { TrendingUp, TrendingDown, Users, ShoppingCart, DollarSign, Package, AlertCircle, BarChart3, Clock } from 'lucide-react'
 import useAuthStore from '../store/useAuthStore'
 import usePlatformStore, { DEFAULT_BALANCE } from '../store/usePlatformStore'
 import { useProductStore } from '../store/useProductStore'
 
 export default function DashboardOverview({ role }) {
   const { user } = useAuthStore()
-  const email = user?.email || 'seller@demo.com'
-
-  const balances = usePlatformStore((state) => state.balances[email] || DEFAULT_BALANCE)
+  
+  // Stores
+  const balanceData = usePlatformStore((state) => state.balance) || DEFAULT_BALANCE
   const transactions = usePlatformStore((state) => state.transactions) || []
+  const dashboardStats = usePlatformStore((state) => state.dashboardStats) || {}
   const packageRequests = usePlatformStore((state) => state.packageRequests) || []
-  const allBalances = usePlatformStore((state) => state.balances) || {}
+  const fetchBalance = usePlatformStore((state) => state.fetchBalance)
+  const fetchDashboardStats = usePlatformStore((state) => state.fetchDashboardStats)
+  const fetchMyTransactions = usePlatformStore((state) => state.fetchMyTransactions)
+  const fetchAllTransactions = usePlatformStore((state) => state.fetchAllTransactions)
 
+  const myProducts = useProductStore((state) => state.sellerProducts) || []
   const storeroomProducts = useProductStore((state) => state.storeroomProducts) || []
-  const sellerProducts = useProductStore((state) => state.sellerProducts) || {}
-  const categories = useProductStore((state) => state.categories) || []
+  const fetchSellerProducts = useProductStore((state) => state.fetchSellerProducts)
+  const fetchStoreroomProducts = useProductStore((state) => state.fetchStoreroomProducts)
+  
+  useEffect(() => {
+    if (role === 'admin') {
+      fetchDashboardStats()
+      fetchAllTransactions()
+      fetchStoreroomProducts()
+    } else {
+      fetchBalance()
+      fetchMyTransactions()
+      fetchSellerProducts()
+    }
+  }, [role, fetchDashboardStats, fetchAllTransactions, fetchStoreroomProducts, fetchBalance, fetchMyTransactions, fetchSellerProducts])
 
-  // ── Compute REAL analytics from store data ──
-
-  // Total revenue: sum of all approved deposits across all sellers
-  const totalPlatformRevenue = useMemo(() => {
-    return transactions
-      .filter(t => t.type === 'Deposit' && t.status === 'Approved')
-      .reduce((sum, tx) => sum + tx.amount, 0)
-  }, [transactions])
-
-  // Total active sellers (sellers who have balances)
-  const totalActiveSellers = useMemo(() => Object.keys(allBalances).length, [allBalances])
-
-  // Total orders (all seller products' sales combined)
-  const totalPlatformOrders = useMemo(() => {
-    let total = 0
-    Object.values(sellerProducts).forEach(products => {
-      products.forEach(p => { total += (p.sales || 0) })
-    })
-    return total
-  }, [sellerProducts])
-
-  // Pending approvals
-  const pendingTransactions = transactions.filter(t => t.status === 'Pending').length
-  const pendingPackages = packageRequests.filter(r => r.status === 'Pending').length
-  const totalPendingApprovals = pendingTransactions + pendingPackages
-
-  // Seller-specific stats
-  const myProducts = sellerProducts[email] || []
+  // Extract Admin Stats from API response (using fallbacks for safety)
+  const totalPlatformRevenue = dashboardStats.totalPlatformRevenue || 0
+  const totalActiveSellers = dashboardStats.totalActiveSellers || 0
+  const totalPlatformOrders = dashboardStats.totalPlatformOrders || 0
+  const totalPendingApprovals = dashboardStats.totalPendingApprovals || 0
+  const totalProducts = dashboardStats.totalProducts || storeroomProducts.length
+  
+  // Extract Seller Stats
   const myTotalSales = myProducts.reduce((sum, p) => sum + (p.sales || 0), 0)
   const myStockAlerts = myProducts.filter(p => p.stock <= 5).length
   const myActiveProducts = myProducts.filter(p => p.status === 'Active').length
 
-  // Seller revenue (total earnings = balance + totalWithdrawn)
-  const myTotalRevenue = balances.balance + balances.totalWithdrawn
-
-  // Build chart data from real transaction history (last 12 months)
+  // Build chart data
   const chartData = useMemo(() => {
     const months = Array(12).fill(0)
     const now = new Date()
 
-    if (role === 'admin') {
-      // Admin: aggregate all approved deposits by month
-      transactions.forEach(tx => {
-        if (tx.type === 'Deposit' && tx.status === 'Approved') {
-          const txDate = new Date(tx.date)
-          const monthDiff = (now.getFullYear() - txDate.getFullYear()) * 12 + (now.getMonth() - txDate.getMonth())
-          if (monthDiff >= 0 && monthDiff < 12) {
-            months[11 - monthDiff] += tx.amount
-          }
+    transactions.forEach(tx => {
+      if (tx.status === 'Approved' || tx.status === 'approved') {
+        const txDate = new Date(tx.date || tx.created_at)
+        const monthDiff = (now.getFullYear() - txDate.getFullYear()) * 12 + (now.getMonth() - txDate.getMonth())
+        if (monthDiff >= 0 && monthDiff < 12) {
+          months[11 - monthDiff] += parseFloat(tx.amount || 0)
         }
-      })
-    } else {
-      // Seller: use their transactions
-      transactions.filter(tx => tx.sellerEmail === email).forEach(tx => {
-        if (tx.status === 'Approved') {
-          const txDate = new Date(tx.date)
-          const monthDiff = (now.getFullYear() - txDate.getFullYear()) * 12 + (now.getMonth() - txDate.getMonth())
-          if (monthDiff >= 0 && monthDiff < 12) {
-            months[11 - monthDiff] += tx.amount
-          }
-        }
-      })
-    }
+      }
+    })
 
-    // Normalize to percentage heights (0-100), with minimum bar height of 5 if any value exists
     const maxVal = Math.max(...months, 1)
     return months.map(v => v === 0 ? 0 : Math.max(5, Math.round((v / maxVal) * 100)))
-  }, [transactions, role, email])
+  }, [transactions])
 
-  // Chart raw values for tooltips
   const chartRawValues = useMemo(() => {
     const months = Array(12).fill(0)
     const now = new Date()
-    const relevantTxs = role === 'admin'
-      ? transactions.filter(tx => tx.type === 'Deposit' && tx.status === 'Approved')
-      : transactions.filter(tx => tx.sellerEmail === email && tx.status === 'Approved')
 
-    relevantTxs.forEach(tx => {
-      const txDate = new Date(tx.date)
-      const monthDiff = (now.getFullYear() - txDate.getFullYear()) * 12 + (now.getMonth() - txDate.getMonth())
-      if (monthDiff >= 0 && monthDiff < 12) {
-        months[11 - monthDiff] += tx.amount
+    transactions.forEach(tx => {
+      if (tx.status === 'Approved' || tx.status === 'approved') {
+        const txDate = new Date(tx.date || tx.created_at)
+        const monthDiff = (now.getFullYear() - txDate.getFullYear()) * 12 + (now.getMonth() - txDate.getMonth())
+        if (monthDiff >= 0 && monthDiff < 12) {
+          months[11 - monthDiff] += parseFloat(tx.amount || 0)
+        }
       }
     })
     return months
-  }, [transactions, role, email])
+  }, [transactions])
 
-  // Month labels
   const monthLabels = useMemo(() => {
     const now = new Date()
     const labels = []
@@ -117,31 +93,18 @@ export default function DashboardOverview({ role }) {
     return labels
   }, [])
 
-  // Build live activity list from real data
   const activities = useMemo(() => {
     const list = []
     
-    // Recent transactions
     transactions.slice(0, 3).forEach(tx => {
       list.push({
-        text: `${tx.type} of $${tx.amount.toFixed(2)} — ${tx.status.toLowerCase()} (${tx.sellerEmail})`,
-        time: tx.date,
-        type: tx.type.toLowerCase(),
-        statusColor: tx.status === 'Approved' ? 'bg-green-500' : tx.status === 'Pending' ? 'bg-yellow-500' : 'bg-red-500'
+        text: `${tx.type || 'Transaction'} of $${parseFloat(tx.amount || 0).toFixed(2)} — ${String(tx.status).toLowerCase()} ${tx.sellerEmail ? `(${tx.sellerEmail})` : ''}`,
+        time: tx.date || tx.created_at,
+        type: String(tx.type).toLowerCase(),
+        statusColor: (tx.status === 'Approved' || tx.status === 'approved') ? 'bg-green-500' : (tx.status === 'Pending' || tx.status === 'pending') ? 'bg-yellow-500' : 'bg-red-500'
       })
     })
 
-    // Package requests
-    packageRequests.slice(0, 2).forEach(req => {
-      list.push({
-        text: `${req.packageName} upgrade — ${req.status.toLowerCase()} (${req.sellerEmail})`,
-        time: req.date,
-        type: 'package',
-        statusColor: req.status === 'Approved' ? 'bg-green-500' : req.status === 'Pending' ? 'bg-yellow-500' : 'bg-red-500'
-      })
-    })
-
-    // Stock alerts from products
     if (role === 'admin') {
       const lowStockProducts = storeroomProducts.filter(p => p.stock <= 5)
       lowStockProducts.slice(0, 2).forEach(p => {
@@ -165,7 +128,7 @@ export default function DashboardOverview({ role }) {
 
     if (list.length === 0) {
       list.push({
-        text: 'No recent activity. Start by adding products or processing transactions.',
+        text: 'No recent activity.',
         time: 'Now',
         type: 'info',
         statusColor: 'bg-slate-500'
@@ -173,15 +136,13 @@ export default function DashboardOverview({ role }) {
     }
 
     return list.slice(0, 6)
-  }, [transactions, packageRequests, storeroomProducts, myProducts, role])
-
-  // ── Build stat cards from REAL data ──
+  }, [transactions, storeroomProducts, myProducts, role])
 
   const adminStats = [
     {
       label: 'Total Revenue',
       value: `$${totalPlatformRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      change: totalPlatformRevenue > 0 ? `$${totalPlatformRevenue.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '$0',
+      change: totalPlatformRevenue > 0 ? 'Growing' : '$0',
       trend: totalPlatformRevenue > 0 ? 'up' : 'neutral',
       icon: DollarSign,
       color: 'text-green-500',
@@ -189,17 +150,17 @@ export default function DashboardOverview({ role }) {
     },
     {
       label: 'Total Products',
-      value: storeroomProducts.length.toString(),
-      change: `${categories.length} categories`,
-      trend: storeroomProducts.length > 0 ? 'up' : 'neutral',
+      value: totalProducts.toString(),
+      change: 'Active in storeroom',
+      trend: totalProducts > 0 ? 'up' : 'neutral',
       icon: Package,
       color: 'text-primary',
-      subtitle: `${storeroomProducts.reduce((s, p) => s + p.stock, 0)} total stock`
+      subtitle: 'Global inventory'
     },
     {
       label: 'Total Orders',
       value: totalPlatformOrders.toString(),
-      change: `${totalActiveSellers} seller${totalActiveSellers !== 1 ? 's' : ''}`,
+      change: `${totalActiveSellers} active sellers`,
       trend: totalPlatformOrders > 0 ? 'up' : 'neutral',
       icon: ShoppingCart,
       color: 'text-accent-gold',
@@ -212,19 +173,19 @@ export default function DashboardOverview({ role }) {
       trend: totalPendingApprovals > 0 ? 'alert' : 'neutral',
       icon: AlertCircle,
       color: totalPendingApprovals > 0 ? 'text-red-500' : 'text-green-500',
-      subtitle: `${pendingTransactions} tx · ${pendingPackages} pkg`
+      subtitle: 'Transactions and packages'
     },
   ]
 
   const sellerStats = [
     {
       label: 'My Balance',
-      value: `$${balances.balance.toFixed(2)}`,
-      change: `$${balances.withdrawable.toFixed(2)} available`,
-      trend: balances.balance > 0 ? 'up' : 'neutral',
+      value: `$${parseFloat(balanceData.balance || 0).toFixed(2)}`,
+      change: `$${parseFloat(balanceData.withdrawable || 0).toFixed(2)} available`,
+      trend: (balanceData.balance || 0) > 0 ? 'up' : 'neutral',
       icon: DollarSign,
       color: 'text-green-500',
-      subtitle: `$${balances.totalWithdrawn.toFixed(2)} withdrawn`
+      subtitle: `$${parseFloat(balanceData.totalWithdrawn || 0).toFixed(2)} withdrawn`
     },
     {
       label: 'My Products',
@@ -337,28 +298,13 @@ export default function DashboardOverview({ role }) {
                 <div className={`w-2 h-2 rounded-full mt-2 shrink-0 shadow-lg ${activity.statusColor}`} />
                 <div className="min-w-0 flex-1">
                   <div className="text-sm text-slate-300 leading-snug">{activity.text}</div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">{activity.time}</div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">{new Date(activity.time).toLocaleDateString()}</div>
                 </div>
               </div>
             ))}
-          </div>
-
-          {/* Summary Footer */}
-          <div className="border-t border-dark-border pt-4 grid grid-cols-2 gap-3">
-            <div className="bg-dark-bg rounded-lg p-3 text-center">
-              <div className="text-xs text-slate-500">Transactions</div>
-              <div className="text-lg font-bold">{transactions.length}</div>
-            </div>
-            <div className="bg-dark-bg rounded-lg p-3 text-center">
-              <div className="text-xs text-slate-500">Pending</div>
-              <div className={`text-lg font-bold ${totalPendingApprovals > 0 ? 'text-yellow-500' : 'text-green-500'}`}>
-                {totalPendingApprovals}
-              </div>
-            </div>
           </div>
         </Card>
       </div>
     </div>
   )
 }
-

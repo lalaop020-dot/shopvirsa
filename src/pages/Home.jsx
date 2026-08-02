@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ArrowRight, Star, ShieldCheck, Search, ChevronLeft, ChevronRight, 
@@ -13,9 +13,15 @@ import { useProductStore } from '../store/useProductStore'
 
 export default function Home() {
   const navigate = useNavigate()
-  const getAllActiveSellerProducts = useProductStore((state) => state.getAllActiveSellerProducts)
-  const activeProducts = getAllActiveSellerProducts()
-  const categories = useProductStore((state) => state.categories)
+  const marketplaceProducts = useProductStore((state) => state.marketplaceProducts) || []
+  const fetchMarketplaceProducts = useProductStore((state) => state.fetchMarketplaceProducts)
+  const categories = useProductStore((state) => state.categories) || []
+
+  useEffect(() => {
+    fetchMarketplaceProducts()
+  }, [fetchMarketplaceProducts])
+
+  const activeProducts = marketplaceProducts
 
   // Live product showcase state
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -40,7 +46,7 @@ export default function Home() {
   // Live search
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
-      setSearchResults([])
+      setSearchResults(prev => prev.length === 0 ? prev : [])
       return
     }
     const q = searchQuery.toLowerCase()

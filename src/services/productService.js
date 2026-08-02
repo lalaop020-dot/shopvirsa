@@ -1,9 +1,35 @@
 import api from '../api/axios'
 
 export const productService = {
-  // Get all products (storefront)
+  // Public/Customer Marketplace
+  getMarketplaceProducts: async (params) => {
+    const response = await api.get('/marketplace/products', { params })
+    return response.data
+  },
+
+  // Admin/Global products (Storehouse)
   getAllProducts: async (params) => {
     const response = await api.get('/products', { params })
+    return response.data
+  },
+  
+  createProduct: async (data) => {
+    const response = await api.post('/products', data)
+    return response.data
+  },
+  
+  updateGlobalProduct: async (id, data) => {
+    const response = await api.put(`/products/${id}`, data)
+    return response.data
+  },
+  
+  deleteGlobalProduct: async (id) => {
+    const response = await api.delete(`/products/${id}`)
+    return response.data
+  },
+  
+  bulkUpload: async (data) => {
+    const response = await api.post('/products/bulk', data)
     return response.data
   },
 
@@ -13,27 +39,31 @@ export const productService = {
     return response.data
   },
 
+  getCategories: async () => {
+    const response = await api.get('/products/categories')
+    return response.data
+  },
+
   // Seller: Get shop products
   getSellerProducts: async () => {
     const response = await api.get('/seller/products')
     return response.data
   },
 
-  // Seller: Add product
-  addProduct: async (data) => {
-    const response = await api.post('/seller/products', data)
+  // Seller: Update product
+  updateSellerProduct: async (id, data) => {
+    const response = await api.put(`/seller/products/${id}`, data)
     return response.data
   },
-
-  // Seller: Update product
-  updateProduct: async (id, data) => {
-    const response = await api.put(`/seller/products/${id}`, data)
+  
+  deleteSellerProduct: async (id) => {
+    const response = await api.delete(`/seller/products/${id}`)
     return response.data
   },
 
   // Seller: Import from storehouse
-  importProduct: async (productId) => {
-    const response = await api.post('/seller/import', { productId })
+  importProduct: async (globalId) => {
+    const response = await api.post(`/seller/products/import/${globalId}`)
     return response.data
   }
 }

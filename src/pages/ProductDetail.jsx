@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { ShoppingCart, Heart, ShieldCheck, Truck, Star, Plus, Minus, AlertCircle } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { Button } from '../components/common/Button'
 import { Card } from '../components/common/Card'
-import { useProductStore } from './../store/useProductStore'
+import { productService } from '../services/productService'
 import useCartStore from '../store/useCartStore'
 import toast from 'react-hot-toast'
 
@@ -12,10 +12,22 @@ export default function ProductDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [quantity, setQuantity] = useState(1)
+  const [product, setProduct] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const product = useProductStore((state) => 
-    state.storeroomProducts.find(p => p.id === parseInt(id))
-  )
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const data = await productService.getProductById(id)
+        setProduct(data)
+      } catch (error) {
+        console.error('Failed to fetch product', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchProduct()
+  }, [id])
 
   const addItem = useCartStore((state) => state.addItem)
 
@@ -31,12 +43,20 @@ export default function ProductDetail() {
     navigate('/checkout')
   }
 
+  if (loading) {
+    return (
+      <div className="py-20 text-center">
+        <p className="text-slate-400">Loading product details...</p>
+      </div>
+    )
+  }
+
   if (!product) {
     return (
       <div className="py-20 text-center space-y-4">
         <AlertCircle className="w-16 h-16 text-slate-500 mx-auto" />
         <h2 className="text-2xl font-bold">Product Not Found</h2>
-        <p className="text-slate-400">The product you are looking for does not exist in the admin storeroom.</p>
+        <p className="text-slate-400">The product you are looking for does not exist.</p>
         <Link to="/products">
           <Button variant="outline" className="mt-4">Back to Marketplace</Button>
         </Link>

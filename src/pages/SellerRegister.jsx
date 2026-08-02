@@ -18,7 +18,8 @@ const sellerSchema = z.object({
 
 export default function SellerRegister() {
   const [isLoading, setIsLoading] = useState(false)
-  const setAuth = useAuthStore((state) => state.setAuth)
+  const registerSeller = useAuthStore((state) => state.registerSeller)
+  const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
 
   const { register, handleSubmit, formState: { errors } } = useForm({
@@ -28,8 +29,8 @@ export default function SellerRegister() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      setAuth({ email: data.email, name: data.name }, 'seller', 'mock-token')
+      await registerSeller(data.name, data.shopName, data.email, data.password)
+      await login(data.email, data.password)
       toast.success('Shop application submitted!')
       navigate('/setup-password')
     } catch (error) {

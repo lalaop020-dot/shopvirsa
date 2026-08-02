@@ -18,8 +18,9 @@ const registerSchema = z.object({
 
 export default function Register() {
   const [isLoading, setIsLoading] = useState(false)
-  const setAuth = useAuthStore((state) => state.setAuth)
-  const registerUser = useAuthStore((state) => state.registerUser)
+  const registerCustomer = useAuthStore((state) => state.registerCustomer)
+  const registerSeller = useAuthStore((state) => state.registerSeller)
+  const login = useAuthStore((state) => state.login)
   const navigate = useNavigate()
 
   const { register, handleSubmit, formState: { errors } } = useForm({
@@ -32,16 +33,18 @@ export default function Register() {
   const onSubmit = async (data) => {
     setIsLoading(true)
     try {
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Save the user in our mock database
-      registerUser(data.name, data.email, data.password, data.role)
+      if (data.role === 'customer') {
+        await registerCustomer(data.name, data.email, data.password)
+      } else {
+        await registerSeller(data.name, `${data.name}'s Shop`, data.email, data.password)
+      }
       
       // Log them in immediately
-      setAuth({ email: data.email, name: data.name }, data.role, 'mock-token')
+      await login(data.email, data.password)
       
       toast.success('Account created successfully!')
-      if (data.role === 'customer') {
+      const currentRole = useAuthStore.getState().role
+      if (currentRole === 'customer') {
         navigate('/')
       } else {
         navigate('/seller/dashboard')
