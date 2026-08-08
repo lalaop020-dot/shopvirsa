@@ -1,6 +1,17 @@
 import { create } from 'zustand'
 import api from '../api/axios'
 
+const determineRole = (user) => {
+  if (!user) return 'customer'
+  const rawRole = (user.role || user.user_type || user.type || user.role_name || '').toString().toLowerCase()
+  if (rawRole === 'seller' || rawRole === 'admin' || rawRole === 'customer') {
+    return rawRole
+  }
+  if (user.is_admin || user.isAdmin) return 'admin'
+  if (user.is_seller || user.isSeller || user.shopName || user.shop_name || user.shopEmail || user.shop_email) return 'seller'
+  return 'customer'
+}
+
 const useAuthStore = create((set, get) => ({
   user: null,
   role: null, // 'admin' | 'seller' | 'customer'
@@ -11,10 +22,13 @@ const useAuthStore = create((set, get) => ({
   login: async (email, password) => {
     try {
       const response = await api.post('/auth/login', { email, password })
-      // Assuming response.data has { token: string }
-      const token = response.data.token || response.data.access_token // depending on fastapi return format
+      // Support direct or nested token response formats
+      const token = response.data?.token || 
+                    response.data?.access_token || 
+                    response.data?.data?.token || 
+                    response.data?.data?.access_token
       
-      if (token) {
+      if (token && token !== 'undefined') {
         localStorage.setItem('token', token)
         set({ token })
         await get().fetchMe()
@@ -53,16 +67,15 @@ const useAuthStore = create((set, get) => ({
   fetchMe: async () => {
     try {
       const token = localStorage.getItem('token')
-      if (!token) {
+      if (!token || token === 'undefined' || token === 'null') {
         set({ user: null, role: null, isAuthenticated: false, token: null })
         return null
       }
       
       const response = await api.get('/auth/me')
-      const userData = response.data
+      const userData = response.data?.user || response.data?.data?.user || response.data?.data || response.data
       
-      // Assume role is returned in userData, default to customer if missing
-      const role = userData.role || 'customer'
+      const role = determineRole(userData)
       
       set({ 
         user: userData, 

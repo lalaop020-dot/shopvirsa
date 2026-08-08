@@ -10,6 +10,9 @@ export const ProtectedRoute = ({ children, allowedRoles }) => {
   }
 
   if (allowedRoles && !allowedRoles.includes(role)) {
+    // Redirect to the correct dashboard for the user's role instead of home
+    if (role === 'admin') return <Navigate to="/admin/dashboard" replace />
+    if (role === 'seller') return <Navigate to="/seller/dashboard" replace />
     return <Navigate to="/" replace />
   }
 
