@@ -14,8 +14,8 @@ export const useProductStore = create((set, get) => ({
     set({ isLoading: true })
     try {
       const data = await productService.getAllProducts(params)
-      // Assuming backend returns array or { items: array }
-      const products = Array.isArray(data) ? data : (data.items || data.data || [])
+      let products = Array.isArray(data) ? data : (data.items || data.products || data.data?.products || data.data || [])
+      if (!Array.isArray(products)) products = []
       set({ storeroomProducts: products, error: null })
     } catch (error) {
       set({ error: error.message })
@@ -75,7 +75,8 @@ export const useProductStore = create((set, get) => ({
     set({ isLoading: true })
     try {
       const data = await productService.getSellerProducts()
-      const products = Array.isArray(data) ? data : (data.items || data.data || [])
+      let products = Array.isArray(data) ? data : (data.items || data.products || data.data?.products || data.data || [])
+      if (!Array.isArray(products)) products = []
       set({ sellerProducts: products, error: null })
     } catch (error) {
       set({ error: error.message })
@@ -122,7 +123,9 @@ export const useProductStore = create((set, get) => ({
   fetchCategories: async () => {
     try {
       const data = await productService.getCategories()
-      set({ categories: Array.isArray(data) ? data : (data.categories || []) })
+      let categories = Array.isArray(data) ? data : (data.categories || data.data?.categories || data.data || [])
+      if (!Array.isArray(categories)) categories = []
+      set({ categories })
     } catch (error) {
       console.error(error)
     }
@@ -132,7 +135,8 @@ export const useProductStore = create((set, get) => ({
     set({ isLoading: true })
     try {
       const data = await productService.getMarketplaceProducts(params)
-      const products = Array.isArray(data) ? data : (data.items || data.data || [])
+      let products = Array.isArray(data) ? data : (data.items || data.products || data.data?.products || data.data || [])
+      if (!Array.isArray(products)) products = []
       set({ marketplaceProducts: products, error: null })
     } catch (error) {
       set({ error: error.message })
