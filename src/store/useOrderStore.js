@@ -10,7 +10,8 @@ const useOrderStore = create((set, get) => ({
     set({ isLoading: true })
     try {
       const data = await orderService.getMyOrders()
-      const orders = Array.isArray(data) ? data : (data.items || data.data || [])
+      let orders = Array.isArray(data) ? data : (data.orders || data.items || data.data?.orders || data.data || [])
+      if (!Array.isArray(orders)) orders = []
       set({ orders, error: null })
     } catch (error) {
       set({ error: error.message })
@@ -23,7 +24,8 @@ const useOrderStore = create((set, get) => ({
     set({ isLoading: true })
     try {
       const data = await orderService.getCustomerOrders()
-      const orders = Array.isArray(data) ? data : (data.items || data.data || [])
+      let orders = Array.isArray(data) ? data : (data.orders || data.items || data.data?.orders || data.data || [])
+      if (!Array.isArray(orders)) orders = []
       set({ orders, error: null })
     } catch (error) {
       set({ error: error.message })
@@ -36,7 +38,8 @@ const useOrderStore = create((set, get) => ({
     set({ isLoading: true })
     try {
       const data = await orderService.getSellerOrders()
-      const orders = Array.isArray(data) ? data : (data.items || data.data || [])
+      let orders = Array.isArray(data) ? data : (data.orders || data.items || data.data?.orders || data.data || [])
+      if (!Array.isArray(orders)) orders = []
       set({ orders, error: null })
     } catch (error) {
       set({ error: error.message })

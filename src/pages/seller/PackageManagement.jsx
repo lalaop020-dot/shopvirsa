@@ -71,7 +71,8 @@ export default function PackageManagement() {
   const fetchMyRequests = async () => {
     try {
       const res = await api.get('/packages/requests')
-      const data = Array.isArray(res.data) ? res.data : (res.data?.items || [])
+      let data = Array.isArray(res.data) ? res.data : (res.data?.requests || res.data?.items || res.data?.data || [])
+      if (!Array.isArray(data)) data = []
       setMyRequests(data)
     } catch (err) {
       console.error(err)

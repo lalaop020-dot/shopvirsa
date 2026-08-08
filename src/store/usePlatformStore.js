@@ -42,7 +42,8 @@ const usePlatformStore = create((set, get) => ({
     set({ isLoading: true })
     try {
       const data = await platformService.getMyTransactions(params)
-      const txs = Array.isArray(data) ? data : (data.items || data.data || [])
+      let txs = Array.isArray(data) ? data : (data.transactions || data.items || data.data?.transactions || data.data || [])
+      if (!Array.isArray(txs)) txs = []
       set({ transactions: txs, error: null })
     } catch (error) {
       set({ error: error.message })
@@ -106,7 +107,8 @@ const usePlatformStore = create((set, get) => ({
     set({ isLoading: true })
     try {
       const data = await platformService.getAllTransactions(params)
-      const txs = Array.isArray(data) ? data : (data.items || data.data || [])
+      let txs = Array.isArray(data) ? data : (data.transactions || data.items || data.data?.transactions || data.data || [])
+      if (!Array.isArray(txs)) txs = []
       set({ transactions: txs, error: null })
     } catch (error) {
       set({ error: error.message })
@@ -118,7 +120,8 @@ const usePlatformStore = create((set, get) => ({
   fetchPendingSellers: async () => {
     try {
       const data = await platformService.getPendingSellers()
-      const sellers = Array.isArray(data) ? data : (data.items || data.data || [])
+      let sellers = Array.isArray(data) ? data : (data.sellers || data.items || data.data?.sellers || data.data || [])
+      if (!Array.isArray(sellers)) sellers = []
       set({ pendingSellers: sellers })
     } catch (error) {
       console.error(error)
@@ -128,7 +131,8 @@ const usePlatformStore = create((set, get) => ({
   fetchAllSellers: async () => {
     try {
       const data = await platformService.getAllSellers()
-      const sellers = Array.isArray(data) ? data : (data.items || data.data || [])
+      let sellers = Array.isArray(data) ? data : (data.sellers || data.items || data.data?.sellers || data.data || [])
+      if (!Array.isArray(sellers)) sellers = []
       set({ allSellers: sellers })
     } catch (error) {
       console.error(error)
@@ -184,7 +188,8 @@ const usePlatformStore = create((set, get) => ({
   fetchAllPackageRequests: async () => {
     try {
       const data = await platformService.getAllPackageRequests()
-      const reqs = Array.isArray(data) ? data : (data.items || data.data || [])
+      let reqs = Array.isArray(data) ? data : (data.requests || data.items || data.data?.requests || data.data || [])
+      if (!Array.isArray(reqs)) reqs = []
       set({ packageRequests: reqs })
     } catch (error) {
       console.error(error)

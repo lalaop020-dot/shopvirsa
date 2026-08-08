@@ -8,7 +8,9 @@ const useChatStore = create((set, get) => ({
   fetchConversations: async () => {
     try {
       const res = await api.get('/chat/conversations')
-      set({ activeChats: Array.isArray(res.data) ? res.data : (res.data?.items || []) })
+      let chats = Array.isArray(res.data) ? res.data : (res.data?.conversations || res.data?.items || res.data?.data || [])
+      if (!Array.isArray(chats)) chats = []
+      set({ activeChats: chats })
     } catch (error) {
       console.error('Failed to fetch conversations:', error)
     }
@@ -17,7 +19,8 @@ const useChatStore = create((set, get) => ({
   fetchMessages: async (partnerEmail) => {
     try {
       const res = await api.get(`/chat/messages/${partnerEmail}`)
-      const msgs = Array.isArray(res.data) ? res.data : (res.data?.items || [])
+      let msgs = Array.isArray(res.data) ? res.data : (res.data?.messages || res.data?.items || res.data?.data || [])
+      if (!Array.isArray(msgs)) msgs = []
       set(state => ({
         conversations: {
           ...state.conversations,
