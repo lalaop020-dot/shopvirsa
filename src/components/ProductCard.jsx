@@ -17,7 +17,7 @@ export function ProductCard({ product, onImport, isImported, showCartAction = fa
 
   return (
     <Card className="group p-0" animate={false}>
-      <Link to={`/product/${product.id}`} className="block">
+      <Link to={`/product/${product.globalId || product.id}`} className="block">
         <div className="relative aspect-square overflow-hidden bg-slate-800">
           <img 
             src={product.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'} 

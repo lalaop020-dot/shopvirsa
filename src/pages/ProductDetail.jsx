@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Button } from '../components/common/Button'
 import { Card } from '../components/common/Card'
 import { productService } from '../services/productService'
+import { useProductStore } from '../store/useProductStore'
 import useCartStore from '../store/useCartStore'
 import toast from 'react-hot-toast'
 
@@ -15,19 +16,47 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
 
+  const fetchMarketplaceProducts = useProductStore((state) => state.fetchMarketplaceProducts)
+
   useEffect(() => {
-    const fetchProduct = async () => {
+    let cancelled = false
+
+    const resolveProduct = async () => {
+      setLoading(true)
+
+      // Prefer the seller's actual marketplace listing (correct price/stock/id
+      // for cart & checkout) over the admin's global catalog record — the
+      // /products/:id endpoint only knows the global catalog id, not the
+      // per-seller listing id shown in the marketplace.
+      let list = useProductStore.getState().marketplaceProducts || []
+      if (list.length === 0) {
+        await fetchMarketplaceProducts()
+        list = useProductStore.getState().marketplaceProducts || []
+      }
+      const match = list.find(p => String(p.globalId) === String(id) || String(p.id) === String(id))
+
+      if (match) {
+        if (!cancelled) { setProduct(match); setLoading(false) }
+        return
+      }
+
+      // Fallback: direct link / bookmark to a product not currently listed by
+      // any seller — show the base admin catalog record instead.
       try {
-        const data = await productService.getProductById(id)
-        setProduct(data)
+        const res = await productService.getProductById(id)
+        const globalProduct = res?.data?.product || res?.product || res?.data || res
+        if (!cancelled) setProduct(globalProduct || null)
       } catch (error) {
         console.error('Failed to fetch product', error)
+        if (!cancelled) setProduct(null)
       } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
       }
     }
-    fetchProduct()
-  }, [id])
+
+    resolveProduct()
+    return () => { cancelled = true }
+  }, [id, fetchMarketplaceProducts])
 
   const addItem = useCartStore((state) => state.addItem)
 

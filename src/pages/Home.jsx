@@ -183,7 +183,7 @@ export default function Home() {
                       >
                         {searchResults.map((product) => (
                           <Link
-                            to={`/product/${product.id}`}
+                            to={`/product/${product.globalId || product.id}`}
                             key={product.id}
                             className="flex items-center gap-3 p-3 hover:bg-primary/10 transition-colors cursor-pointer border-b border-dark-border/30 last:border-0"
                           >
@@ -241,7 +241,7 @@ export default function Home() {
                             <div className="text-2xl font-bold text-white">${currentProduct.price}</div>
                             <div className="text-[10px] text-slate-500">{currentProduct.stock > 0 ? `${currentProduct.stock} in stock` : 'Out of stock'}</div>
                           </div>
-                          <Link to={`/product/${currentProduct.id}`}>
+                          <Link to={`/product/${currentProduct.globalId || currentProduct.id}`}>
                             <Button size="sm" className="gap-1.5">
                               <Eye className="w-3.5 h-3.5" /> View
                             </Button>
