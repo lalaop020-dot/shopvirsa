@@ -1,13 +1,53 @@
-import { useState } from 'react'
-import { Bell, ShoppingCart, DollarSign, UserPlus, Info, CheckCircle2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Bell, ShoppingCart, DollarSign, CheckCircle2, Package } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import api from '../api/axios'
 
-export function NotificationCenter({ isOpen, onClose }) {
+const TYPE_ICON_MAP = {
+  order: ShoppingCart,
+  wallet: DollarSign,
+  info: CheckCircle2,
+  package: Package,
+}
+
+export function NotificationCenter({ isOpen, onClose, isAuthenticated, onUnreadCountChange }) {
   const [notifications, setNotifications] = useState([])
+  const [loading, setLoading] = useState(false)
 
-  const markAllRead = () => {
-    setNotifications(notifications.map(n => ({ ...n, unread: false })))
+  useEffect(() => {
+    const loadNotifications = async () => {
+      if (!isAuthenticated) {
+        setNotifications([])
+        return
+      }
+      setLoading(true)
+      try {
+        const res = await api.get('/notifications')
+        let data = Array.isArray(res.data) ? res.data : (res.data?.notifications || res.data?.items || res.data?.data?.notifications || res.data?.data || [])
+        if (!Array.isArray(data)) data = []
+        setNotifications(data)
+      } catch (err) {
+        console.error(err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadNotifications()
+  }, [isAuthenticated, isOpen])
+
+  useEffect(() => {
+    const unreadCount = notifications.filter(n => !n.is_read && !n.read).length
+    onUnreadCountChange?.(unreadCount)
+  }, [notifications, onUnreadCountChange])
+
+  const markAllRead = async () => {
+    try {
+      await api.put('/notifications/read-all')
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true, read: true })))
+    } catch (err) {
+      console.error(err)
+    }
   }
 
   return (
@@ -30,31 +70,40 @@ export function NotificationCenter({ isOpen, onClose }) {
             </div>
 
             <div className="max-h-[400px] overflow-y-auto">
-              {notifications.map((notif) => (
-                <div 
-                  key={notif.id} 
-                  className={`p-4 border-b border-dark-border hover:bg-white/5 transition-all cursor-pointer relative ${
-                    notif.unread ? 'bg-primary/5' : ''
-                  }`}
-                >
-                  <div className="flex gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                      notif.unread ? 'bg-primary/20 text-primary' : 'bg-dark-bg text-slate-500'
-                    }`}>
-                      <notif.icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="text-sm font-bold flex items-center gap-2">
-                        {notif.title}
-                        {notif.unread && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+              {loading && (
+                <div className="p-8 text-center text-slate-500 text-sm">Loading...</div>
+              )}
+              {!loading && notifications.slice(0, 6).map((notif) => {
+                const isUnread = !notif.is_read && !notif.read
+                const NotifIcon = TYPE_ICON_MAP[notif.type] || Bell
+                return (
+                  <div
+                    key={notif.id}
+                    className={`p-4 border-b border-dark-border hover:bg-white/5 transition-all cursor-pointer relative ${
+                      isUnread ? 'bg-primary/5' : ''
+                    }`}
+                  >
+                    <div className="flex gap-4">
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                        isUnread ? 'bg-primary/20 text-primary' : 'bg-dark-bg text-slate-500'
+                      }`}>
+                        <NotifIcon className="w-5 h-5" />
                       </div>
-                      <p className="text-xs text-slate-400 mt-1">{notif.message}</p>
-                      <span className="text-[10px] text-slate-500 mt-2 block">{notif.time}</span>
+                      <div>
+                        <div className="text-sm font-bold flex items-center gap-2">
+                          {notif.title || 'Notification'}
+                          {isUnread && <div className="w-1.5 h-1.5 bg-primary rounded-full" />}
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">{notif.message || notif.body}</p>
+                        <span className="text-[10px] text-slate-500 mt-2 block">
+                          {notif.created_at ? new Date(notif.created_at).toLocaleString() : notif.time}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              {notifications.length === 0 && (
+                )
+              })}
+              {!loading && notifications.length === 0 && (
                 <div className="p-12 text-center text-slate-500">
                   No new notifications.
                 </div>

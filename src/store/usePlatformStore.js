@@ -29,8 +29,8 @@ const usePlatformStore = create((set, get) => ({
     set({ isLoading: true })
     try {
       const data = await platformService.getBalance()
-      // data might be { balance: 0, ... }
-      set({ balance: data, error: null })
+      // Backend wraps the payload as { success, data: { balance, ... } }
+      set({ balance: data?.data || data, error: null })
     } catch (error) {
       set({ error: error.message })
     } finally {
@@ -74,28 +74,12 @@ const usePlatformStore = create((set, get) => ({
     }
   },
 
-  requestAdminBankWithdrawal: (bankName, accountHolder, iban, amount) => {
-    const newReq = {
-      id: `WDR-${Date.now().toString().slice(-6)}`,
-      bankName,
-      accountHolder,
-      iban,
-      amount,
-      status: 'Pending',
-      date: new Date().toLocaleDateString()
-    }
-    set((state) => ({
-      adminBankWithdrawals: [newReq, ...state.adminBankWithdrawals],
-      adminTotalWithdrawn: state.adminTotalWithdrawn + amount
-    }))
-  },
-
   // Admin Dashboard
   fetchDashboardStats: async () => {
     set({ isLoading: true })
     try {
       const stats = await platformService.getDashboardStats()
-      set({ dashboardStats: stats, error: null })
+      set({ dashboardStats: stats?.data || stats, error: null })
     } catch (error) {
       set({ error: error.message })
     } finally {

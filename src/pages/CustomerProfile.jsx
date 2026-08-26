@@ -1,20 +1,32 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { User, Lock, Mail, ShieldAlert, ShoppingBag } from 'lucide-react'
 import { Card } from '../components/common/Card'
 import { Input } from '../components/common/Input'
 import { Button } from '../components/common/Button'
 import useAuthStore from '../store/useAuthStore'
+import useOrderStore from '../store/useOrderStore'
 import api from '../api/axios'
 import toast from 'react-hot-toast'
 
 export default function CustomerProfile() {
   const { user, updateUser } = useAuthStore()
+  const orders = useOrderStore((state) => state.orders) || []
+  const fetchCustomerOrders = useOrderStore((state) => state.fetchCustomerOrders)
   const [name, setName] = useState(user?.name || '')
   const [email, setEmail] = useState(user?.email || '')
-  
+
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+
+  useEffect(() => {
+    fetchCustomerOrders()
+  }, [fetchCustomerOrders])
+
+  const activeOrdersCount = orders.filter(o => {
+    const status = String(o.status || '').toLowerCase()
+    return status !== 'delivered' && status !== 'cancelled'
+  }).length
 
   const handleSaveProfile = async (e) => {
     e.preventDefault()
@@ -70,11 +82,11 @@ export default function CustomerProfile() {
           </div>
           <div className="w-full border-t border-dark-border pt-4 flex justify-around text-center">
             <div>
-              <div className="font-bold text-primary">5</div>
+              <div className="font-bold text-primary">{orders.length}</div>
               <div className="text-[10px] text-slate-500 uppercase font-bold">Orders</div>
             </div>
             <div>
-              <div className="font-bold text-green-500">1</div>
+              <div className="font-bold text-green-500">{activeOrdersCount}</div>
               <div className="text-[10px] text-slate-500 uppercase font-bold">Active</div>
             </div>
           </div>

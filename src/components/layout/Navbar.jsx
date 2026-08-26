@@ -4,11 +4,14 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../common/Button'
 import { NotificationCenter } from '../NotificationCenter'
 import useAuthStore from '../../store/useAuthStore'
+import useCartStore from '../../store/useCartStore'
 
 export function Navbar() {
   const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [unreadCount, setUnreadCount] = useState(0)
   const { isAuthenticated, role, user, logout } = useAuthStore()
+  const cartCount = useCartStore((state) => state.items.reduce((sum, item) => sum + item.quantity, 0))
   const navigate = useNavigate()
 
   const handleLogout = () => {
@@ -45,7 +48,11 @@ export function Navbar() {
         <div className="flex items-center gap-4">
           <Link to="/cart" className="relative p-2 hover:bg-dark-card rounded-full transition-all">
             <ShoppingCart className="w-6 h-6" />
-            <span className="absolute top-0 right-0 bg-primary text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">0</span>
+            {cartCount > 0 && (
+              <span className="absolute top-0 right-0 bg-primary text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center">
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
           </Link>
           <div className="relative">
             <button 
@@ -53,9 +60,16 @@ export function Navbar() {
               className={`p-2 hover:bg-dark-card rounded-full transition-all ${isNotifOpen ? 'bg-dark-card' : ''}`}
             >
               <Bell className="w-6 h-6" />
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full border-2 border-dark-bg" />
+              {unreadCount > 0 && (
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-primary rounded-full border-2 border-dark-bg" />
+              )}
             </button>
-            <NotificationCenter isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
+            <NotificationCenter
+              isOpen={isNotifOpen}
+              onClose={() => setIsNotifOpen(false)}
+              isAuthenticated={isAuthenticated}
+              onUnreadCountChange={setUnreadCount}
+            />
           </div>
           
           {isAuthenticated ? (

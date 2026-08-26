@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Wallet as WalletIcon, ArrowUpRight, ArrowDownLeft, History, Plus, Image as ImageIcon, Copy, Check } from 'lucide-react'
 import { Button } from '../../components/common/Button'
 import { Card } from '../../components/common/Card'
@@ -7,11 +7,12 @@ import usePlatformStore, { DEFAULT_BALANCE } from '../../store/usePlatformStore'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 
-// Admin USDT address - hardcoded since it comes from the backend profile/settings
-const ADMIN_USDT_WALLET = 'TY6b8f9G2h7L1m5N3k8R0q4Wp1Xz9VcV7b'
+// Fallback only used if the backend hasn't provided a deposit address yet
+const FALLBACK_USDT_WALLET = import.meta.env.VITE_USDT_WALLET_ADDRESS || ''
 
 export default function Wallet() {
   const balanceData = usePlatformStore((state) => state.balance) || DEFAULT_BALANCE
+  const ADMIN_USDT_WALLET = balanceData.depositAddress || balanceData.deposit_address || FALLBACK_USDT_WALLET
   const transactions = usePlatformStore((state) => state.transactions) || []
   const fetchBalance = usePlatformStore((state) => state.fetchBalance)
   const fetchMyTransactions = usePlatformStore((state) => state.fetchMyTransactions)
@@ -50,6 +51,7 @@ export default function Wallet() {
   ]
 
   const handleCopy = () => {
+    if (!ADMIN_USDT_WALLET) return
     navigator.clipboard.writeText(ADMIN_USDT_WALLET)
     setCopied(true)
     toast.success('Wallet address copied!')
@@ -223,7 +225,7 @@ export default function Wallet() {
             <form onSubmit={handleDepositSubmit} className="space-y-6">
               <div className="p-4 bg-primary/10 border border-primary/20 rounded-xl mb-6">
                 <div className="text-sm font-bold text-primary mb-1">USDT Wallet Address (TRC20)</div>
-                <div className="font-mono text-sm break-all">{ADMIN_USDT_WALLET}</div>
+                <div className="font-mono text-sm break-all">{ADMIN_USDT_WALLET || 'Unavailable — contact support'}</div>
                 <button 
                   type="button" 
                   onClick={handleCopy}

@@ -48,7 +48,7 @@ const useOrderStore = create((set, get) => ({
     }
   },
 
-  createOrder: async (cartItems, shippingInfo, paymentMethod) => {
+  createOrder: async (cartItems, shippingInfo, paymentMethod, paymentProof) => {
     try {
       const orderData = {
         items: cartItems.map(item => ({
@@ -67,9 +67,15 @@ const useOrderStore = create((set, get) => ({
           zip: shippingInfo.zip,
           email: shippingInfo.email || null
         },
-        paymentMethod: paymentMethod
+        paymentMethod: paymentMethod,
+        ...(paymentProof?.txHash || paymentProof?.senderWallet ? {
+          paymentProof: {
+            txHash: paymentProof.txHash || null,
+            senderWallet: paymentProof.senderWallet || null
+          }
+        } : {})
       }
-      
+
       const newOrder = await orderService.createOrder(orderData)
       return newOrder
     } catch (error) {

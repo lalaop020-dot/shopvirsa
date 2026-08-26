@@ -1,19 +1,29 @@
 import { useState } from 'react'
 import { ShoppingBag, CreditCard, MapPin, CheckCircle2, ChevronRight, Zap } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Navigate } from 'react-router-dom'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
 import { Card } from '../components/common/Card'
+import { formatCurrency } from '../utils/formatters'
 import useCartStore from '../store/useCartStore'
 import useOrderStore from '../store/useOrderStore'
 import toast from 'react-hot-toast'
+
+const PAYMENT_ADDRESS = import.meta.env.VITE_USDT_WALLET_ADDRESS || ''
 
 export default function Checkout() {
   const [step, setStep] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
   const [placedOrderId, setPlacedOrderId] = useState(null)
   const navigate = useNavigate()
+
+  const items = useCartStore((state) => state.items)
+  const subtotal = useCartStore((state) => state.getSubtotal())
+  const tax = useCartStore((state) => state.getTax())
+  const total = useCartStore((state) => state.getTotal())
+  const shipping = 0
+  const pointsEarned = Math.floor(total / 10)
 
   const steps = [
     { id: 1, title: 'Shipping', icon: MapPin },
@@ -29,13 +39,21 @@ export default function Checkout() {
   const [city, setCity] = useState('')
   const [zip, setZip] = useState('')
 
+  // Payment proof state
+  const [txHash, setTxHash] = useState('')
+  const [senderWallet, setSenderWallet] = useState('')
+
   const nextStep = () => setStep(s => Math.min(s + 1, 3))
   const prevStep = () => setStep(s => Math.max(s - 1, 1))
 
+  if (items.length === 0 && step !== 4) {
+    return <Navigate to="/cart" replace />
+  }
+
   const handlePlaceOrder = async () => {
     setIsProcessing(true)
-    
-    const { items, clearCart } = useCartStore.getState()
+
+    const { clearCart } = useCartStore.getState()
     const { createOrder } = useOrderStore.getState()
 
     const shippingInfo = {
@@ -47,11 +65,11 @@ export default function Checkout() {
     }
 
     try {
-      const newOrder = await createOrder(items, shippingInfo, 'Crypto (USDT/BTC)')
+      const newOrder = await createOrder(items, shippingInfo, 'Crypto (USDT/BTC)', { txHash, senderWallet })
       clearCart()
       setPlacedOrderId(newOrder?.id)
       setStep(4)
-    } catch (err) {
+    } catch {
       toast.error('Failed to place order. Please try again.')
     } finally {
       setIsProcessing(false)
@@ -148,13 +166,25 @@ export default function Checkout() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                   <div className="md:col-span-2 p-4 bg-dark-bg/50 border border-dark-border rounded-xl mb-4">
-                    <p className="text-sm text-slate-400 mb-2">Please send the exact total amount to our secure payment address:</p>
+                    <p className="text-sm text-slate-400 mb-2">Please send the exact total amount ({formatCurrency(total)}) to our secure payment address:</p>
                     <code className="block w-full p-3 bg-dark-card rounded text-primary text-center font-mono break-all">
-                      TL8r4M9L... (Example USDT TRC20 Address)
+                      {PAYMENT_ADDRESS || 'Payment address unavailable — contact support'}
                     </code>
                   </div>
-                  <Input label="Transaction Hash (TxID)" placeholder="Enter the transaction hash of your payment" className="md:col-span-2" />
-                  <Input label="Sender Wallet Address" placeholder="Your crypto wallet address" className="md:col-span-2" />
+                  <Input
+                    label="Transaction Hash (TxID)"
+                    placeholder="Enter the transaction hash of your payment"
+                    className="md:col-span-2"
+                    value={txHash}
+                    onChange={(e) => setTxHash(e.target.value)}
+                  />
+                  <Input
+                    label="Sender Wallet Address"
+                    placeholder="Your crypto wallet address"
+                    className="md:col-span-2"
+                    value={senderWallet}
+                    onChange={(e) => setSenderWallet(e.target.value)}
+                  />
                 </div>
 
                 <div className="flex justify-between pt-8">
@@ -174,20 +204,28 @@ export default function Checkout() {
               >
                 <h2 className="text-2xl font-bold">Review Order</h2>
                 <div className="glass-card p-6 rounded-2xl space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-16 h-16 bg-slate-800 rounded-lg" />
-                    <div className="flex-grow">
-                      <div className="font-bold">iPhone 15 Pro Max</div>
-                      <div className="text-sm text-slate-400">Color: Natural Titanium</div>
+                  {items.map((item) => (
+                    <div key={item.id} className="flex items-center gap-4">
+                      <div className="w-16 h-16 bg-slate-800 rounded-lg overflow-hidden shrink-0">
+                        {item.image && <img src={item.image} alt={item.name} className="w-full h-full object-cover" />}
+                      </div>
+                      <div className="flex-grow min-w-0">
+                        <div className="font-bold truncate">{item.name}</div>
+                        <div className="text-sm text-slate-400">Qty: {item.quantity}</div>
+                      </div>
+                      <div className="font-bold">{formatCurrency(item.price * item.quantity)}</div>
                     </div>
-                    <div className="font-bold">$1,299.00</div>
-                  </div>
+                  ))}
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-8 py-8 border-y border-dark-border">
                   <div>
                     <h4 className="font-bold text-sm text-slate-500 uppercase mb-2">Shipping to</h4>
-                    <p className="text-sm">John Doe<br />123 Main St<br />New York, NY 10001</p>
+                    <p className="text-sm">
+                      {`${firstName} ${lastName}`.trim() || 'Customer'}<br />
+                      {address || '—'}<br />
+                      {city}{city && zip ? ', ' : ''}{zip}
+                    </p>
                   </div>
                   <div>
                     <h4 className="font-bold text-sm text-slate-500 uppercase mb-2">Payment</h4>
@@ -209,28 +247,34 @@ export default function Checkout() {
           <Card className="sticky top-28 p-6 space-y-6">
             <h3 className="text-xl font-bold">Order Summary</h3>
             <div className="space-y-3">
-              <div className="flex justify-between text-slate-400">
+              {items.map((item) => (
+                <div key={item.id} className="flex justify-between text-sm text-slate-400">
+                  <span className="truncate pr-2">{item.name} x{item.quantity}</span>
+                  <span className="text-white shrink-0">{formatCurrency(item.price * item.quantity)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between text-slate-400 pt-3 border-t border-dark-border">
                 <span>Subtotal</span>
-                <span className="text-white">$1,299.00</span>
+                <span className="text-white">{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Shipping</span>
-                <span className="text-green-500">Free</span>
+                <span className="text-green-500">{shipping === 0 ? 'Free' : formatCurrency(shipping)}</span>
               </div>
               <div className="flex justify-between text-slate-400">
                 <span>Estimated Tax</span>
-                <span className="text-white">$103.92</span>
+                <span className="text-white">{formatCurrency(tax)}</span>
               </div>
               <div className="pt-4 border-t border-dark-border flex justify-between font-bold text-xl">
                 <span>Total</span>
-                <span className="text-primary">$1,402.92</span>
+                <span className="text-primary">{formatCurrency(total)}</span>
               </div>
             </div>
-            
+
             <div className="p-4 bg-primary/5 border border-primary/10 rounded-xl flex items-start gap-3">
               <Zap className="w-5 h-5 text-primary mt-1" />
               <div className="text-xs text-slate-400">
-                You'll earn <span className="text-white font-bold">140 Shopiversa Points</span> with this order!
+                You'll earn <span className="text-white font-bold">{pointsEarned} Shopiversa Points</span> with this order!
               </div>
             </div>
           </Card>

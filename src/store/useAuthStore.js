@@ -17,7 +17,19 @@ const useAuthStore = create((set, get) => ({
   role: null, // 'admin' | 'seller' | 'customer'
   isAuthenticated: false,
   token: localStorage.getItem('token') || null,
-  
+  isInitializing: true,
+
+  // Rehydrates auth state from the stored token on app load
+  initAuth: async () => {
+    const token = localStorage.getItem('token')
+    if (!token || token === 'undefined' || token === 'null') {
+      set({ isInitializing: false })
+      return
+    }
+    await get().fetchMe()
+    set({ isInitializing: false })
+  },
+
   // Real login API call
   login: async (email, password) => {
     try {

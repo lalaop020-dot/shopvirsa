@@ -14,7 +14,7 @@ export default function SupportTickets() {
   const fetchTickets = async () => {
     try {
       const res = await api.get('/support/tickets')
-      let data = Array.isArray(res.data) ? res.data : (res.data?.tickets || res.data?.items || res.data?.data || [])
+      let data = Array.isArray(res.data) ? res.data : (res.data?.tickets || res.data?.items || res.data?.data?.tickets || res.data?.data || [])
       if (!Array.isArray(data)) data = []
       setTickets(data)
     } catch (err) {

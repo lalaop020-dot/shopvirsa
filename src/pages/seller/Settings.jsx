@@ -10,32 +10,23 @@ import toast from 'react-hot-toast'
 export default function ShopSettings() {
   const role = useAuthStore((state) => state.role)
   const user = useAuthStore((state) => state.user)
-  const updateUser = useAuthStore((state) => state.updateUser)
-  
-  // Admin credentials state
-  const adminEmail = useAuthStore((state) => state.adminEmail)
-  const adminPassword = useAuthStore((state) => state.adminPassword)
-  const updateAdminCredentials = useAuthStore((state) => state.updateAdminCredentials)
-  
-  // Admin wallets state
-  const adminWallets = useAuthStore((state) => state.adminWallets) || { usdt: '', btc: '' }
-  const updateAdminWallets = useAuthStore((state) => state.updateAdminWallets)
 
-  const [adminMailInput, setAdminMailInput] = useState(adminEmail)
-  const [adminPassInput, setAdminPassInput] = useState(adminPassword)
+  // Admin credentials state — hydrated from the real authenticated user, not fabricated defaults
+  const [adminMailInput, setAdminMailInput] = useState(user?.email || '')
   const [adminNewPassInput, setAdminNewPassInput] = useState('')
   const [adminConfirmPassInput, setAdminConfirmPassInput] = useState('')
 
-  const [adminUsdtInput, setAdminUsdtInput] = useState(adminWallets.usdt)
-  const [adminBtcInput, setAdminBtcInput] = useState(adminWallets.btc)
+  const [adminUsdtInput, setAdminUsdtInput] = useState(user?.usdtAddress || '')
+  const [adminBtcInput, setAdminBtcInput] = useState(user?.btcAddress || '')
 
-  // Seller profile states
-  const [shopName, setShopName] = useState(user?.shopName || 'Shopiversa Official Store')
-  const [shopEmail, setShopEmail] = useState(user?.shopEmail || 'shop@example.com')
-  const [shopDesc, setShopDesc] = useState(user?.shopDesc || 'Welcome to the official Shopiversa store. We provide high-quality digital assets and electronics.')
-  const [usdtAddress, setUsdtAddress] = useState(user?.usdtAddress || 'TY6b8f9G2h7L1m5N3k8R0q4Wp1Xz9VcV7b')
-  const [btcAddress, setBtcAddress] = useState(user?.btcAddress || '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa')
-  
+  // Seller profile states — no hardcoded wallet/shop defaults; a blank field must never
+  // silently submit as someone else's real payout address
+  const [shopName, setShopName] = useState(user?.shopName || '')
+  const [shopEmail, setShopEmail] = useState(user?.shopEmail || '')
+  const [shopDesc, setShopDesc] = useState(user?.shopDesc || '')
+  const [usdtAddress, setUsdtAddress] = useState(user?.usdtAddress || '')
+  const [btcAddress, setBtcAddress] = useState(user?.btcAddress || '')
+
   const [activeTab, setActiveTab] = useState('shop')
 
   const tabs = [
@@ -53,12 +44,13 @@ export default function ShopSettings() {
       return
     }
     try {
-      await api.put('/auth/admin/credentials', {
+      const payload = {
         email: adminMailInput,
-        password: adminNewPassInput || adminPassInput,
         usdtAddress: adminUsdtInput,
         btcAddress: adminBtcInput
-      })
+      }
+      if (adminNewPassInput) payload.password = adminNewPassInput
+      await api.put('/auth/admin/credentials', payload)
       toast.success('Admin settings updated successfully!')
       setAdminNewPassInput('')
       setAdminConfirmPassInput('')
@@ -82,12 +74,6 @@ export default function ShopSettings() {
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Failed to update profile')
     }
-  }
-
-  const handleUpdatePassword = async () => {
-    // Note: We don't have a state for currentPassword in the UI for sellers right now,
-    // assuming it might be added or we just send new one. The UI has Current Password field but no state!
-    // Let's implement it correctly. We will need to add state for it below.
   }
 
   const handleSave = () => {
@@ -119,10 +105,10 @@ export default function ShopSettings() {
               value={adminMailInput} 
               onChange={(e) => setAdminMailInput(e.target.value)} 
             />
-            <Input 
-              label="Current Password" 
-              type="password" 
-              value={adminPassInput}
+            <Input
+              label="Current Password"
+              type="password"
+              placeholder="••••••••"
               disabled
             />
             <div className="md:col-span-2 grid md:grid-cols-2 gap-6 pt-4 border-t border-dark-border">
@@ -153,15 +139,17 @@ export default function ShopSettings() {
           </p>
           
           <div className="grid md:grid-cols-2 gap-6">
-            <Input 
-              label="Platform USDT Address (TRC20)" 
-              value={adminUsdtInput} 
-              onChange={(e) => setAdminUsdtInput(e.target.value)} 
+            <Input
+              label="Platform USDT Address (TRC20)"
+              placeholder="Enter the platform's USDT TRC20 address"
+              value={adminUsdtInput}
+              onChange={(e) => setAdminUsdtInput(e.target.value)}
             />
-            <Input 
-              label="Platform BTC Address" 
-              value={adminBtcInput} 
-              onChange={(e) => setAdminBtcInput(e.target.value)} 
+            <Input
+              label="Platform BTC Address"
+              placeholder="Enter the platform's BTC address"
+              value={adminBtcInput}
+              onChange={(e) => setAdminBtcInput(e.target.value)}
             />
           </div>
 
@@ -221,19 +209,22 @@ export default function ShopSettings() {
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <Input 
-                    label="Shop Name" 
-                    value={shopName} 
-                    onChange={(e) => setShopName(e.target.value)} 
+                    label="Shop Name"
+                    placeholder="e.g. Acme Electronics"
+                    value={shopName}
+                    onChange={(e) => setShopName(e.target.value)}
                   />
-                  <Input 
-                    label="Shop Email" 
-                    value={shopEmail} 
-                    onChange={(e) => setShopEmail(e.target.value)} 
+                  <Input
+                    label="Shop Email"
+                    placeholder="shop@example.com"
+                    value={shopEmail}
+                    onChange={(e) => setShopEmail(e.target.value)}
                   />
                   <div className="md:col-span-2 space-y-1.5">
                     <label className="text-sm font-medium text-slate-300">Shop Description</label>
-                    <textarea 
+                    <textarea
                       className="input-field min-h-[120px] py-3"
+                      placeholder="Tell customers what your shop offers..."
                       value={shopDesc}
                       onChange={(e) => setShopDesc(e.target.value)}
                     />
@@ -255,15 +246,17 @@ export default function ShopSettings() {
                 </div>
 
                 <div className="space-y-4">
-                  <Input 
-                    label="USDT Wallet Address (TRC20)" 
-                    value={usdtAddress} 
-                    onChange={(e) => setUsdtAddress(e.target.value)} 
+                  <Input
+                    label="USDT Wallet Address (TRC20)"
+                    placeholder="Enter your USDT TRC20 address"
+                    value={usdtAddress}
+                    onChange={(e) => setUsdtAddress(e.target.value)}
                   />
-                  <Input 
-                    label="Bitcoin Wallet Address" 
-                    value={btcAddress} 
-                    onChange={(e) => setBtcAddress(e.target.value)} 
+                  <Input
+                    label="Bitcoin Wallet Address"
+                    placeholder="Enter your BTC address"
+                    value={btcAddress}
+                    onChange={(e) => setBtcAddress(e.target.value)}
                   />
                   <div className="pt-4 flex items-center gap-3">
                     <input type="checkbox" className="w-4 h-4 rounded border-dark-border bg-dark-bg accent-primary" defaultChecked />

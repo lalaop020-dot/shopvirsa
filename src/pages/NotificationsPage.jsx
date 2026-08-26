@@ -19,7 +19,7 @@ export default function NotificationsPage() {
   const fetchNotifications = async () => {
     try {
       const res = await api.get('/notifications')
-      let data = Array.isArray(res.data) ? res.data : (res.data?.notifications || res.data?.items || res.data?.data || [])
+      let data = Array.isArray(res.data) ? res.data : (res.data?.notifications || res.data?.items || res.data?.data?.notifications || res.data?.data || [])
       if (!Array.isArray(data)) data = []
       setNotifications(data)
     } catch (err) {

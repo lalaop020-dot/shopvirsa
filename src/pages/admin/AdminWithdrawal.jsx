@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react'
-import { Landmark, ArrowUpRight, History, CreditCard } from 'lucide-react'
+import { useState, useMemo, useEffect } from 'react'
+import { Landmark, ArrowUpRight, History, CreditCard, AlertCircle } from 'lucide-react'
 import { Card } from '../../components/common/Card'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
@@ -7,11 +7,16 @@ import usePlatformStore from '../../store/usePlatformStore'
 import toast from 'react-hot-toast'
 import { motion } from 'framer-motion'
 
+// Automated bank payouts have no backend endpoint yet — this page only
+// reports real revenue figures. Submission is disabled until the backend
+// exposes a withdrawal-request API.
+const BANK_WITHDRAWAL_SUPPORTED = false
+
 export default function AdminWithdrawal() {
   const transactions = usePlatformStore((state) => state.transactions)
+  const fetchAllTransactions = usePlatformStore((state) => state.fetchAllTransactions)
   const adminBankWithdrawals = usePlatformStore((state) => state.adminBankWithdrawals) || []
   const adminTotalWithdrawn = usePlatformStore((state) => state.adminTotalWithdrawn) || 0
-  const requestAdminBankWithdrawal = usePlatformStore((state) => state.requestAdminBankWithdrawal)
 
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [bankName, setBankName] = useState('')
@@ -19,7 +24,11 @@ export default function AdminWithdrawal() {
   const [iban, setIban] = useState('')
   const [amount, setAmount] = useState('')
 
-  // Calculate platform revenue
+  useEffect(() => {
+    fetchAllTransactions()
+  }, [fetchAllTransactions])
+
+  // Calculate platform revenue from real, approved deposit transactions
   const totalPlatformRevenue = useMemo(() => {
     return transactions
       .filter(t => t.type === 'Deposit' && t.status === 'Approved')
@@ -36,29 +45,7 @@ export default function AdminWithdrawal() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    const withdrawAmt = parseFloat(amount)
-    
-    if (!withdrawAmt || withdrawAmt <= 0) {
-      toast.error('Invalid withdrawal amount')
-      return
-    }
-    if (withdrawAmt > availableBalance) {
-      toast.error('Insufficient available balance')
-      return
-    }
-    if (!bankName || !accountHolder || !iban) {
-      toast.error('Please fill all bank details')
-      return
-    }
-
-    requestAdminBankWithdrawal(bankName, accountHolder, iban, withdrawAmt)
-    toast.success('Withdrawal request submitted successfully!')
-    
-    setBankName('')
-    setAccountHolder('')
-    setIban('')
-    setAmount('')
-    setIsModalOpen(false)
+    toast.error('Automated bank withdrawal is not yet supported by the backend. Please coordinate this payout manually.')
   }
 
   return (
@@ -70,6 +57,16 @@ export default function AdminWithdrawal() {
         </div>
         <Button onClick={() => setIsModalOpen(true)}>Request Withdrawal</Button>
       </div>
+
+      {!BANK_WITHDRAWAL_SUPPORTED && (
+        <div className="p-4 bg-accent-gold/10 border border-accent-gold/25 rounded-2xl flex items-center gap-3">
+          <AlertCircle className="w-6 h-6 text-accent-gold shrink-0" />
+          <div>
+            <h4 className="font-bold text-accent-gold">Bank Withdrawals Not Yet Automated</h4>
+            <p className="text-xs text-slate-400 mt-1">The figures below reflect real platform revenue, but bank payout requests are not yet processed by the backend. Submitted requests will not be recorded.</p>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {stats.map((stat, i) => (

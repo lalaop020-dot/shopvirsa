@@ -8,7 +8,7 @@ const useChatStore = create((set, get) => ({
   fetchConversations: async () => {
     try {
       const res = await api.get('/chat/conversations')
-      let chats = Array.isArray(res.data) ? res.data : (res.data?.conversations || res.data?.items || res.data?.data || [])
+      let chats = Array.isArray(res.data) ? res.data : (res.data?.conversations || res.data?.items || res.data?.data?.conversations || res.data?.data || [])
       if (!Array.isArray(chats)) chats = []
       set({ activeChats: chats })
     } catch (error) {
@@ -19,7 +19,7 @@ const useChatStore = create((set, get) => ({
   fetchMessages: async (partnerEmail) => {
     try {
       const res = await api.get(`/chat/messages/${partnerEmail}`)
-      let msgs = Array.isArray(res.data) ? res.data : (res.data?.messages || res.data?.items || res.data?.data || [])
+      let msgs = Array.isArray(res.data) ? res.data : (res.data?.messages || res.data?.items || res.data?.data?.messages || res.data?.data || [])
       if (!Array.isArray(msgs)) msgs = []
       set(state => ({
         conversations: {

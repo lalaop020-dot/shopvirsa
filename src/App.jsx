@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AnimatePresence } from 'framer-motion'
+import useAuthStore from './store/useAuthStore'
 
 // Layouts
 import MainLayout from './layouts/MainLayout'
@@ -36,6 +38,21 @@ import AdminWithdrawal from './pages/admin/AdminWithdrawal'
 import { ProtectedRoute } from './routes/guards'
 
 function App() {
+  const isInitializing = useAuthStore((state) => state.isInitializing)
+  const initAuth = useAuthStore((state) => state.initAuth)
+
+  useEffect(() => {
+    initAuth()
+  }, [initAuth])
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-dark-bg text-dark-text flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-dark-bg text-dark-text">
       <AnimatePresence mode="wait">

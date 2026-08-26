@@ -1,25 +1,30 @@
 import { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  ArrowRight, Star, ShieldCheck, Search, ChevronLeft, ChevronRight, 
-  ShoppingCart, TrendingUp, Package, Layers, Eye,
+import {
+  ArrowRight, Star, ShieldCheck, Search, ChevronLeft, ChevronRight,
+  ShoppingCart, TrendingUp, Package, Layers, Eye, LogIn,
   Smartphone, Dumbbell, Sparkles, Shirt, Home as HomeIcon, PawPrint,
   ShoppingBag, Laptop, Headphones, Gamepad, Puzzle
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../components/common/Button'
 import { Card } from '../components/common/Card'
+import { ProductCard } from '../components/ProductCard'
 import { useProductStore } from '../store/useProductStore'
+import useAuthStore from '../store/useAuthStore'
 
 export default function Home() {
   const navigate = useNavigate()
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const marketplaceProducts = useProductStore((state) => state.marketplaceProducts) || []
   const fetchMarketplaceProducts = useProductStore((state) => state.fetchMarketplaceProducts)
   const categories = useProductStore((state) => state.categories) || []
 
   useEffect(() => {
-    fetchMarketplaceProducts()
-  }, [fetchMarketplaceProducts])
+    if (isAuthenticated) {
+      fetchMarketplaceProducts()
+    }
+  }, [isAuthenticated, fetchMarketplaceProducts])
 
   const activeProducts = marketplaceProducts
 
@@ -125,6 +130,26 @@ export default function Home() {
             className="relative"
           >
             <div className="bg-gradient-to-br from-primary/10 via-dark-card to-secondary/10 rounded-3xl overflow-hidden shadow-2xl border border-dark-border flex flex-col">
+              {!isAuthenticated ? (
+                <div className="p-10 flex flex-col items-center text-center gap-4">
+                  <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center">
+                    <LogIn className="w-7 h-7 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg mb-1">Sign in to see live products</h3>
+                    <p className="text-sm text-slate-400">Log in to browse the marketplace, view stock, and start shopping.</p>
+                  </div>
+                  <div className="flex gap-3 mt-2">
+                    <Link to="/login">
+                      <Button size="sm">Login</Button>
+                    </Link>
+                    <Link to="/register">
+                      <Button size="sm" variant="outline">Create Account</Button>
+                    </Link>
+                  </div>
+                </div>
+              ) : (
+              <>
               {/* Showcase Header with Search */}
               <div className="p-5 pb-3 border-b border-dark-border/50">
                 <div className="flex items-center justify-between mb-3">
@@ -271,27 +296,55 @@ export default function Home() {
                   <div className="text-[10px] text-slate-500">Secure</div>
                 </div>
               </div>
+              </>
+              )}
             </div>
 
             {/* Floating Live Orders Badge */}
-            <motion.div 
-              animate={{ y: [0, -8, 0] }}
-              transition={{ repeat: Infinity, duration: 3.5 }}
-              className="absolute -bottom-5 -left-5 glass-card p-3 rounded-2xl flex items-center gap-3 shadow-2xl border border-dark-border/50"
-            >
-              <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
-                <ShoppingCart className="text-primary w-5 h-5" />
-              </div>
-              <div>
-                <div className="font-bold text-sm">{totalStock.toLocaleString()}+ Items</div>
-                <div className="text-[10px] text-slate-400">Ready to Ship</div>
-              </div>
-            </motion.div>
+            {isAuthenticated && (
+              <motion.div
+                animate={{ y: [0, -8, 0] }}
+                transition={{ repeat: Infinity, duration: 3.5 }}
+                className="absolute -bottom-5 -left-5 glass-card p-3 rounded-2xl flex items-center gap-3 shadow-2xl border border-dark-border/50"
+              >
+                <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                  <ShoppingCart className="text-primary w-5 h-5" />
+                </div>
+                <div>
+                  <div className="font-bold text-sm">{totalStock.toLocaleString()}+ Items</div>
+                  <div className="text-[10px] text-slate-400">Ready to Ship</div>
+                </div>
+              </motion.div>
+            )}
           </motion.div>
         </div>
       </section>
 
+      {/* Product Grid */}
+      {isAuthenticated && (
+        <section>
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="text-3xl font-bold">Featured Products</h2>
+            <Link to="/products">
+              <Button variant="ghost">View All</Button>
+            </Link>
+          </div>
+          {activeProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {activeProducts.slice(0, 8).map((product) => (
+                <ProductCard key={product.id} product={product} showCartAction={true} />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-16 bg-dark-card border border-dark-border rounded-2xl text-slate-500">
+              No products available right now. Check back soon.
+            </div>
+          )}
+        </section>
+      )}
+
       {/* Featured Categories */}
+      {isAuthenticated ? (
       <section>
         <div className="flex items-center justify-between mb-10">
           <h2 className="text-3xl font-bold">Featured Categories</h2>
@@ -318,6 +371,21 @@ export default function Home() {
           })}
         </div>
       </section>
+      ) : (
+        <section className="text-center py-16 border border-dark-border rounded-3xl bg-dark-card/40">
+          <ShieldCheck className="w-10 h-10 text-primary mx-auto mb-4" />
+          <h2 className="text-2xl font-bold mb-2">Browse categories after signing in</h2>
+          <p className="text-slate-400 max-w-md mx-auto mb-6">Create an account or log in to explore our full range of categories and products.</p>
+          <div className="flex gap-4 justify-center">
+            <Link to="/login">
+              <Button>Login</Button>
+            </Link>
+            <Link to="/register">
+              <Button variant="outline">Create Account</Button>
+            </Link>
+          </div>
+        </section>
+      )}
     </div>
   )
 }

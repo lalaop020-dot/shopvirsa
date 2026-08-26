@@ -86,13 +86,7 @@ export default function ProductDetail() {
             </div>
             <h1 className="text-4xl font-extrabold mb-4">{product.name}</h1>
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1 text-accent-gold">
-                <Star className="w-5 h-5 fill-current" />
-                <span className="font-bold">4.8</span>
-              </div>
-              <span className="text-slate-500">(1,240 customer reviews)</span>
-              <div className="h-4 w-px bg-dark-border" />
-              <span className="text-green-500 font-medium">Available in Storeroom</span>
+              <span className="text-green-500 font-medium">{product.stock > 0 ? 'Available in Storeroom' : 'Currently Out of Stock'}</span>
             </div>
           </div>
 
@@ -174,7 +168,7 @@ export default function ProductDetail() {
               </div>
               <div>
                 <div className="font-bold">Shopiversa Official Store</div>
-                <div className="text-xs text-slate-400">98% Positive Feedback</div>
+                <div className="text-xs text-slate-400">Verified Shopiversa Marketplace Listing</div>
               </div>
             </Card>
           </div>

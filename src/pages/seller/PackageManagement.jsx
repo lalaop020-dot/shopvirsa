@@ -62,7 +62,7 @@ export default function PackageManagement() {
   const fetchCurrentPackage = async () => {
     try {
       const res = await api.get('/packages/current')
-      setCurrentPackage(res.data)
+      setCurrentPackage(res.data?.data || res.data)
     } catch (err) {
       console.error(err)
     }
@@ -71,7 +71,7 @@ export default function PackageManagement() {
   const fetchMyRequests = async () => {
     try {
       const res = await api.get('/packages/requests')
-      let data = Array.isArray(res.data) ? res.data : (res.data?.requests || res.data?.items || res.data?.data || [])
+      let data = Array.isArray(res.data) ? res.data : (res.data?.requests || res.data?.items || res.data?.data?.requests || res.data?.data || [])
       if (!Array.isArray(data)) data = []
       setMyRequests(data)
     } catch (err) {
