@@ -15,8 +15,15 @@ import { platformService } from '../../services/platformService'
 import { formatCurrency } from '../../utils/formatters'
 import toast from 'react-hot-toast'
 
-// ─── Constants ───────────────────────────────────────────────────────────────
-const COMMISSION_RATE = 0.10 // 10%
+// ─── Constants & Helpers ────────────────────────────────────────────────────────
+const PAYMENT_METHODS = ['Manual Payment', 'Credit Card', 'Debit Card', 'Crypto', 'Cash on Delivery', 'Bank Transfer']
+
+function getMarginRate(seller) {
+  const pkg = seller?.package?.toLowerCase() || seller?.package_name?.toLowerCase() || seller?.packageName?.toLowerCase() || 'silver'
+  if (pkg.includes('platinum')) return 0.25
+  if (pkg.includes('golden') || pkg.includes('gold')) return 0.20
+  return 0.17 // Silver or default
+}
 
 const STATUS_STEPS = ['Processing', 'Dispatched', 'Delivered', 'Completed']
 
@@ -28,7 +35,6 @@ const STATUS_COLORS = {
   cancelled:   'bg-red-500/10    text-red-400    border border-red-500/20',
 }
 
-const PAYMENT_METHODS = ['Credit Card', 'Debit Card', 'Crypto', 'Cash on Delivery', 'Bank Transfer']
 
 function getStatusStyle(s) {
   return STATUS_COLORS[s?.toLowerCase()] || 'bg-slate-500/10 text-slate-400 border border-slate-500/20'
@@ -45,11 +51,22 @@ function OrderDetailView({ order, onBack, onStatusChange }) {
   const [updatingStatus, setUpdatingStatus] = useState(false)
   const updateOrderStatus = useOrderStore(s => s.updateOrderStatus)
   const fetchAllOrders   = useOrderStore(s => s.fetchAllOrders)
+  const allSellers       = usePlatformStore(s => s.allSellers)
 
   const items    = order.items || []
   const total    = parseFloat(order.total || items.reduce((s, i) => s + i.price * i.quantity, 0))
-  const commission = total * COMMISSION_RATE
-  const sellerEarning = total - commission
+  
+  // Find seller to calculate package-based profit
+  const firstItemSellerEmail = items[0]?.sellerEmail || order.sellerEmail || order.seller_email
+  const seller = allSellers.find(s => 
+    s.email === firstItemSellerEmail || 
+    s.shopEmail === firstItemSellerEmail || 
+    s.shop_email === firstItemSellerEmail
+  ) || order.seller
+  
+  const marginRate = getMarginRate(seller)
+  const sellerProfit = total * marginRate
+  const storeroomPrice = total - sellerProfit
 
   const currentStatus = order.status || 'Processing'
   const stepIdx = getStatusIndex(currentStatus)
@@ -303,14 +320,14 @@ function OrderDetailView({ order, onBack, onStatusChange }) {
           {/* Left: Total + Commission */}
           <div className="space-y-4">
             <div>
-              <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">Total Price of Order</div>
+              <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">Total Price</div>
               <div className="text-xs text-slate-500 mb-2">Total amount paid by customer</div>
               <div className="text-3xl font-black text-green-400">{formatCurrency(total)}</div>
             </div>
             <div>
-              <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">Store Commission</div>
-              <div className="text-xs text-slate-500 mb-2">{Math.round(COMMISSION_RATE * 100)}% of order total</div>
-              <div className="text-3xl font-black text-primary">{Math.round(COMMISSION_RATE * 100)}%</div>
+              <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">Seller Profit Margin</div>
+              <div className="text-xs text-slate-500 mb-2">Based on {seller?.package_name || 'Silver'} package</div>
+              <div className="text-3xl font-black text-primary">{Math.round(marginRate * 100)}%</div>
             </div>
           </div>
 
@@ -318,9 +335,9 @@ function OrderDetailView({ order, onBack, onStatusChange }) {
           <div className="bg-dark-bg rounded-2xl p-6 border border-dark-border space-y-5">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">StoreRoom Price (After Commission)</div>
-                <div className="text-xs text-slate-500 mb-3">Amount you will receive</div>
-                <div className="text-3xl font-black text-white">{formatCurrency(sellerEarning)}</div>
+                <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">Storeroom Price</div>
+                <div className="text-xs text-slate-500 mb-3">Amount sent to platform/storeroom</div>
+                <div className="text-3xl font-black text-white">{formatCurrency(storeroomPrice)}</div>
               </div>
               <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center shrink-0">
                 <DollarSign className="w-6 h-6 text-primary" />
@@ -328,8 +345,8 @@ function OrderDetailView({ order, onBack, onStatusChange }) {
             </div>
             <div className="pt-4 border-t border-dark-border">
               <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">Seller Profit</div>
-              <div className="text-xs text-slate-500 mb-2">Your earning from this order</div>
-              <div className="text-2xl font-black text-orange-400">{formatCurrency(commission)}</div>
+              <div className="text-xs text-slate-500 mb-2">Seller's earning from this order</div>
+              <div className="text-2xl font-black text-orange-400">{formatCurrency(sellerProfit)}</div>
             </div>
           </div>
         </div>
@@ -354,7 +371,7 @@ function PlaceOrderModal({ onClose, onSuccess }) {
   const [shipping, setShipping] = useState({
     name: '', email: '', address: '', city: '', zip: ''
   })
-  const [paymentMethod, setPaymentMethod] = useState('Credit Card')
+  const [paymentMethod, setPaymentMethod] = useState('Manual Payment')
 
   useEffect(() => { fetchAllSellers() }, [fetchAllSellers])
 
@@ -420,6 +437,9 @@ function PlaceOrderModal({ onClose, onSuccess }) {
   }
 
   const cartTotal = cartItems.reduce((s, i) => s + parseFloat(i.price || 0) * i.quantity, 0)
+  const marginRate = getMarginRate(selectedSeller)
+  const sellerProfit = cartTotal * marginRate
+  const storeroomPrice = cartTotal - sellerProfit
 
   const handleSubmit = async () => {
     if (!cartItems.length) return toast.error('Cart is empty')
@@ -698,17 +718,17 @@ function PlaceOrderModal({ onClose, onSuccess }) {
                     <span className="font-bold">{formatCurrency(item.price * item.quantity)}</span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between pt-3 mt-1">
-                  <span className="text-slate-400 font-medium">Order Total</span>
+                <div className="flex items-center justify-between pt-3 mt-1 text-sm">
+                  <span className="text-slate-400 font-medium">Storeroom price</span>
+                  <span className="font-semibold text-white">{formatCurrency(storeroomPrice)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-2 text-sm">
+                  <span className="text-slate-500">Seller profit ({Math.round(marginRate * 100)}%)</span>
+                  <span className="text-green-400 font-semibold">+{formatCurrency(sellerProfit)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-2 text-sm border-t border-dark-border mt-2">
+                  <span className="text-slate-400 font-bold">Total price</span>
                   <span className="text-xl font-black text-primary">{formatCurrency(cartTotal)}</span>
-                </div>
-                <div className="flex items-center justify-between pt-2 text-sm">
-                  <span className="text-slate-500">Commission (10%)</span>
-                  <span className="text-orange-400 font-semibold">−{formatCurrency(cartTotal * COMMISSION_RATE)}</span>
-                </div>
-                <div className="flex items-center justify-between pt-2 text-sm">
-                  <span className="text-slate-500">Seller Receives</span>
-                  <span className="text-green-400 font-semibold">{formatCurrency(cartTotal * (1 - COMMISSION_RATE))}</span>
                 </div>
               </div>
             </div>
@@ -761,7 +781,12 @@ export default function AdminOrders() {
   const [placeModalOpen, setPlaceModalOpen] = useState(false)
   const [detailStatusLocal, setDetailStatusLocal] = useState(null)
 
-  useEffect(() => { fetchAllOrders() }, [fetchAllOrders])
+  const fetchAllSellers = usePlatformStore(s => s.fetchAllSellers)
+
+  useEffect(() => { 
+    fetchAllOrders() 
+    fetchAllSellers()
+  }, [fetchAllOrders, fetchAllSellers])
 
   const filteredOrders = allOrders.filter(order => {
     const id       = String(order.id || '').toLowerCase()
