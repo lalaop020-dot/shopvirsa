@@ -59,7 +59,7 @@ export function NotificationCenter({ isOpen, onClose, isAuthenticated, onUnreadC
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
-            className="absolute top-16 right-0 w-80 lg:w-96 glass-card rounded-2xl shadow-2xl z-[101] overflow-hidden"
+            className="absolute top-16 right-0 w-80 lg:w-96 bg-dark-card border-2 border-primary rounded-2xl shadow-2xl shadow-primary/20 z-[101] overflow-hidden"
           >
             <div className="p-4 border-b border-dark-border flex items-center justify-between">
               <div className="flex items-center gap-2">
