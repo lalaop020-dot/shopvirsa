@@ -35,6 +35,7 @@ import AdminPackages from './pages/admin/AdminPackages'
 import AdminSupport from './pages/admin/AdminSupport'
 import AdminStoreroom from './pages/admin/AdminStoreroom'
 import AdminWithdrawal from './pages/admin/AdminWithdrawal'
+import AdminOrders from './pages/admin/AdminOrders'
 import { ProtectedRoute } from './routes/guards'
 
 function App() {
@@ -115,6 +116,7 @@ function App() {
             <Route path="support" element={<AdminSupport />} />
             <Route path="settings" element={<ShopSettings />} />
             <Route path="storeroom" element={<AdminStoreroom />} />
+            <Route path="orders" element={<AdminOrders />} />
           </Route>
 
           {/* Catch All */}

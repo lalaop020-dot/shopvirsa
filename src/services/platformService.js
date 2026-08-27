@@ -84,5 +84,18 @@ export const platformService = {
   rejectPackage: async (reqId) => {
     const response = await api.put(`/admin/requests/${reqId}/reject`)
     return response.data
+  },
+
+  // Admin: Get products for a specific seller shop
+  getSellerShopProducts: async (sellerEmail) => {
+    const params = sellerEmail ? { seller: sellerEmail } : {}
+    const response = await api.get('/marketplace/products', { params })
+    return response.data
+  },
+
+  // Admin: Get all marketplace products (for random order fill)
+  getAllMarketplaceProducts: async () => {
+    const response = await api.get('/marketplace/products')
+    return response.data
   }
 }

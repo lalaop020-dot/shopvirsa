@@ -6,8 +6,7 @@ import useAuthStore from '../store/useAuthStore'
 import useChatStore from '../store/useChatStore'
 
 export function ChatWindow({ recipient = 'Support', onClose }) {
-  const { user, role } = useAuthStore()
-  const email = user?.email || 'customer@demo.com'
+  const { user } = useAuthStore()
 
   const { getMessages, fetchMessages, sendMessage } = useChatStore()
   const messages = getMessages('admin') // Admin is the partner

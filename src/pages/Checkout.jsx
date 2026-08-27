@@ -91,7 +91,7 @@ export default function Checkout() {
           Order {placedOrderId ? `#${placedOrderId}` : ''} confirmed. You will receive a confirmation shortly.
         </p>
         <div className="flex gap-4 justify-center">
-          <Button variant="outline" onClick={() => navigate('/orders')}>View Orders</Button>
+          <Button variant="outline" onClick={() => navigate('/profile?tab=orders')}>View Orders</Button>
           <Button onClick={() => navigate('/products')}>Continue Shopping</Button>
         </div>
       </div>

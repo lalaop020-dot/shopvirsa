@@ -7,6 +7,18 @@ export const orderService = {
     return response.data
   },
 
+  // Admin: Create order on behalf of a customer/seller
+  adminCreateOrder: async (data) => {
+    const response = await api.post('/admin/orders', data)
+    return response.data
+  },
+
+  // Admin: Get all orders across all sellers
+  getAllOrders: async (params) => {
+    const response = await api.get('/admin/orders', { params })
+    return response.data
+  },
+
   // Get orders based on role
   getMyOrders: async () => {
     const response = await api.get('/orders')

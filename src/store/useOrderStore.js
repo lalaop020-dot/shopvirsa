@@ -3,8 +3,45 @@ import { orderService } from '../services/orderService'
 
 const useOrderStore = create((set, get) => ({
   orders: [],
+  allOrders: [],      // Admin: all orders across all sellers
+  selectedOrder: null,
   isLoading: false,
   error: null,
+
+  setSelectedOrder: (order) => set({ selectedOrder: order }),
+
+  // Admin: fetch all orders
+  fetchAllOrders: async (params) => {
+    set({ isLoading: true })
+    try {
+      const data = await orderService.getAllOrders(params)
+      let orders = Array.isArray(data) ? data : (data.orders || data.items || data.data?.orders || data.data || [])
+      if (!Array.isArray(orders)) orders = []
+      set({ allOrders: orders, error: null })
+    } catch (error) {
+      set({ error: error.message })
+    } finally {
+      set({ isLoading: false })
+    }
+  },
+
+  // Admin: place order on behalf of any customer
+  adminPlaceOrder: async (orderData) => {
+    try {
+      // Try admin endpoint first, fall back to regular endpoint
+      let newOrder
+      try {
+        newOrder = await orderService.adminCreateOrder(orderData)
+      } catch {
+        newOrder = await orderService.createOrder(orderData)
+      }
+      await get().fetchAllOrders()
+      return newOrder
+    } catch (error) {
+      console.error(error)
+      throw error
+    }
+  },
 
   fetchMyOrders: async () => {
     set({ isLoading: true })

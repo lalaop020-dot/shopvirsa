@@ -14,7 +14,8 @@ import {
   Award,
   Store,
   Bell,
-  Landmark
+  Landmark,
+  ShoppingBag
 } from 'lucide-react'
 import { Button } from '../components/common/Button'
 import useAuthStore from '../store/useAuthStore'
@@ -48,14 +49,15 @@ export default function DashboardLayout() {
   ]
 
   const adminMenuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: `/admin/dashboard` },
-    { icon: Package, label: 'Storeroom Control', path: `/admin/storeroom` },
-    { icon: Store, label: 'Shop Approvals', path: `/admin/shops` },
-    { icon: Wallet, label: 'Transactions', path: `/admin/transactions` },
-    { icon: Landmark, label: 'Bank Withdrawal', path: '/admin/withdrawal' },
-    { icon: Award, label: 'Packages', path: `/admin/packages` },
-    { icon: MessageSquare, label: 'Support', path: `/admin/support` },
-    { icon: Settings, label: 'Settings', path: `/admin/settings` },
+    { icon: LayoutDashboard, label: 'Dashboard',       path: `/admin/dashboard` },
+    { icon: Package,         label: 'Storeroom Control', path: `/admin/storeroom` },
+    { icon: Store,           label: 'Shop Approvals',  path: `/admin/shops` },
+    { icon: ShoppingBag,     label: 'Orders',          path: `/admin/orders` },
+    { icon: Wallet,          label: 'Transactions',    path: `/admin/transactions` },
+    { icon: Landmark,        label: 'Bank Withdrawal', path: '/admin/withdrawal' },
+    { icon: Award,           label: 'Packages',        path: `/admin/packages` },
+    { icon: MessageSquare,   label: 'Support',         path: `/admin/support` },
+    { icon: Settings,        label: 'Settings',        path: `/admin/settings` },
   ]
 
   const menuItems = role === 'admin' ? adminMenuItems : sellerMenuItems
@@ -132,7 +134,7 @@ export default function DashboardLayout() {
               <NotificationCenter isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
             </div>
             <div className="text-right hidden sm:block">
-              <div className="text-sm font-bold">{user?.name || 'Demo User'}</div>
+              <div className="text-sm font-bold">{user?.name || ''}</div>
               <div className="text-xs text-slate-400 uppercase tracking-widest">{role}</div>
             </div>
             <div className="w-10 h-10 bg-primary/20 text-primary rounded-full border border-dark-border flex items-center justify-center font-bold">
