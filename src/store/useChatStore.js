@@ -43,13 +43,20 @@ const useChatStore = create((set, get) => ({
   sendMessage: async (recipientEmail, text, attachment = null) => {
     try {
       if (attachment) {
-        const formData = new FormData()
-        formData.append('recipientEmail', recipientEmail)
-        if (text) formData.append('text', text)
-        formData.append('attachment', attachment)
+        const toBase64 = (file) => new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.readAsDataURL(file)
+          reader.onload = () => resolve(reader.result)
+          reader.onerror = error => reject(error)
+        })
+        const base64Data = await toBase64(attachment)
         
-        await api.post('/chat/messages', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' }
+        await api.post('/chat/messages', { 
+          recipientEmail, 
+          text: text || '',
+          attachment: base64Data,
+          attachmentName: attachment.name,
+          attachmentType: attachment.type
         })
       } else {
         await api.post('/chat/messages', { recipientEmail, text })

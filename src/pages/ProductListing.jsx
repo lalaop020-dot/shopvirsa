@@ -50,14 +50,16 @@ const [priceMax, setPriceMax] = useState(5000);
   }, [fetchStoreroomProducts, fetchCategories, currentPage, slug, debouncedSearch])
 
   const featuredCategories = [
-    'Electronics',
     'Sports Goods',
     'Cosmetics',
-    "Men's Clothes & Outfits",
-    "Women's Clothes & Outfits",
-    'Home Appliances and Goods accessories',
-    'Pet Food and accessories',
-    'Toys & Games'
+    "Men's Clothes",
+    "Women's Clothes",
+    'Home Appliances',
+    'Pet Foods',
+    'Toys and Games',
+    'Computers',
+    'Audio',
+    'Electronics'
   ]
 
   const getCategoryCount = (catName) => {
@@ -89,14 +91,16 @@ const paginatedProducts = sortedProducts;
   const categoryList = Array.from(new Set(['All', ...featuredCategories, ...categories]))
 
   const categoryBrands = {
-    'electronics': ['Apple', 'Samsung', 'Sony', 'LG', 'Logitech'],
     'sports goods': ['Nike', 'Adidas', 'Puma', 'Under Armour', 'Reebok'],
     'cosmetics': ["L'Oreal", 'MAC', 'Estee Lauder', 'Maybelline', 'NARS'],
-    "men's clothes & outfits": ["Levi's", 'Zara', 'H&M', 'Gucci', 'Ralph Lauren'],
-    "women's clothes & outfits": ['Zara', 'H&M', 'Chanel', 'Prada', 'Mango'],
-    'home appliances and goods accessories': ['Dyson', 'Philips', 'Bosch', 'Panasonic', 'Whirlpool'],
-    'pet food and accessories': ['Pedigree', 'Royal Canin', 'Purina', 'Whiskas', "Hill's"],
-    'toys & games': ['LEGO', 'Hasbro', 'Mattel', 'Fisher-Price', 'Nerf']
+    "men's clothes": ["Levi's", 'Zara', 'H&M', 'Gucci', 'Ralph Lauren'],
+    "women's clothes": ['Zara', 'H&M', 'Chanel', 'Prada', 'Mango'],
+    'home appliances': ['Dyson', 'Philips', 'Bosch', 'Panasonic', 'Whirlpool'],
+    'pet foods': ['Pedigree', 'Royal Canin', 'Purina', 'Whiskas', "Hill's"],
+    'toys and games': ['LEGO', 'Hasbro', 'Mattel', 'Fisher-Price', 'Nerf'],
+    'computers': ['Apple', 'Dell', 'HP', 'Lenovo', 'Asus'],
+    'audio': ['Sony', 'Bose', 'Sennheiser', 'JBL', 'Beats'],
+    'electronics': ['Apple', 'Samsung', 'Sony', 'LG', 'Logitech']
   }
 
   const currentBrands = slug && categoryBrands[slug.toLowerCase()]

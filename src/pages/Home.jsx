@@ -12,18 +12,20 @@ import { ProductCard } from '../components/ProductCard'
 import { Pagination } from '../components/common/Pagination'
 import { useProductStore } from '../store/useProductStore'
 import useAuthStore from '../store/useAuthStore'
-import { AlertCircle, RefreshCw } from 'lucide-react'
+import { AlertCircle, RefreshCw, Smartphone, Dumbbell, Sparkles, Shirt, ShoppingBag, HomeIcon, PawPrint, Puzzle, Laptop, Headphones } from 'lucide-react'
 
 // ─── Category config ──────────────────────────────────────────────────────────
 const FEATURED_CATEGORIES = [
   { name: 'Electronics',                          icon: Smartphone,  color: 'text-blue-400',    bg: 'from-blue-500/20 to-blue-600/10',    slug: 'electronics' },
   { name: 'Sports Goods',                         icon: Dumbbell,    color: 'text-orange-400',  bg: 'from-orange-500/20 to-orange-600/10', slug: 'sports goods' },
   { name: 'Cosmetics',                            icon: Sparkles,    color: 'text-pink-400',    bg: 'from-pink-500/20 to-pink-600/10',    slug: 'cosmetics' },
-  { name: "Men's Clothes & Outfits",              icon: Shirt,       color: 'text-indigo-400',  bg: 'from-indigo-500/20 to-indigo-600/10',slug: "men's clothes & outfits" },
-  { name: "Women's Clothes & Outfits",            icon: ShoppingBag, color: 'text-rose-400',    bg: 'from-rose-500/20 to-rose-600/10',    slug: "women's clothes & outfits" },
-  { name: 'Home Appliances',                      icon: HomeIcon,    color: 'text-emerald-400', bg: 'from-emerald-500/20 to-emerald-600/10', slug: 'home appliances and goods accessories' },
-  { name: 'Pet Food & Accessories',               icon: PawPrint,    color: 'text-amber-400',   bg: 'from-amber-500/20 to-amber-600/10',  slug: 'pet food and accessories' },
-  { name: 'Toys & Games',                         icon: Puzzle,      color: 'text-yellow-400',  bg: 'from-yellow-500/20 to-yellow-600/10',slug: 'toys & games' },
+  { name: "Men's Clothes",                        icon: Shirt,       color: 'text-indigo-400',  bg: 'from-indigo-500/20 to-indigo-600/10',slug: "men's clothes" },
+  { name: "Women's Clothes",                      icon: ShoppingBag, color: 'text-rose-400',    bg: 'from-rose-500/20 to-rose-600/10',    slug: "women's clothes" },
+  { name: 'Home Appliances',                      icon: HomeIcon,    color: 'text-emerald-400', bg: 'from-emerald-500/20 to-emerald-600/10', slug: 'home appliances' },
+  { name: 'Pet Foods',                            icon: PawPrint,    color: 'text-amber-400',   bg: 'from-amber-500/20 to-amber-600/10',  slug: 'pet foods' },
+  { name: 'Toys and Games',                       icon: Puzzle,      color: 'text-yellow-400',  bg: 'from-yellow-500/20 to-yellow-600/10',slug: 'toys and games' },
+  { name: 'Computers',                            icon: Laptop,      color: 'text-cyan-400',    bg: 'from-cyan-500/20 to-cyan-600/10',    slug: 'computers' },
+  { name: 'Audio',                                icon: Headphones,  color: 'text-violet-400',  bg: 'from-violet-500/20 to-violet-600/10',slug: 'audio' },
 ]
 
 export default function Home() {
