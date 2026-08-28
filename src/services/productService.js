@@ -3,13 +3,13 @@ import api from '../api/axios'
 export const productService = {
   // Public/Customer Marketplace
   getMarketplaceProducts: async (params = {}) => {
-    const response = await api.get('/marketplace/products', { params: { limit: 5000, ...params } })
+    const response = await api.get('/marketplace/products', { params: { limit: 200, ...params } })
     return response.data
   },
 
   // Admin/Global products (Storehouse)
   getAllProducts: async (params = {}) => {
-    const response = await api.get('/products', { params: { limit: 5000, ...params } })
+    const response = await api.get('/products', { params: { limit: 200, ...params } })
     return response.data
   },
   
@@ -46,7 +46,7 @@ export const productService = {
 
   // Seller: Get shop products
   getSellerProducts: async (params = {}) => {
-    const response = await api.get('/seller/products', { params: { limit: 5000, ...params } })
+    const response = await api.get('/seller/products', { params: { limit: 200, ...params } })
     return response.data
   },
 
