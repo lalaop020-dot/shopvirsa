@@ -41,7 +41,8 @@ export default function DashboardOverview({ role }) {
   const totalActiveSellers = dashboardStats.totalActiveSellers || 0
   const totalPlatformOrders = dashboardStats.totalPlatformOrders || 0
   const totalPendingApprovals = dashboardStats.totalPendingApprovals || 0
-  const totalProducts = dashboardStats.totalProducts || storeroomProducts.length
+  const storeTotalProducts = useProductStore((state) => state.totalProducts) || 0
+  const totalProducts = dashboardStats.totalProducts || storeTotalProducts || storeroomProducts.length
   
   // Extract Seller Stats
   const myTotalSales = myProducts.reduce((sum, p) => sum + (p.sales || 0), 0)
