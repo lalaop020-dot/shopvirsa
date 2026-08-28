@@ -24,6 +24,17 @@ export default function AdminSupport() {
     }
   }, [selectedChatEmail, fetchMessages])
 
+  // Polling every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchConversations()
+      if (selectedChatEmail) {
+        fetchMessages(selectedChatEmail)
+      }
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [fetchConversations, fetchMessages, selectedChatEmail])
+
   const rawMessages = selectedChatEmail 
     ? (conversations || {})[selectedChatEmail]
     : []

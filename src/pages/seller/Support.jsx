@@ -1,244 +1,145 @@
-import { useState, useEffect } from 'react'
-import { Plus, MessageCircle, Clock, CheckCircle2, AlertCircle, Search } from 'lucide-react'
-import { Button } from '../../components/common/Button'
+import { useState, useEffect, useRef } from 'react'
+import { MessageSquare, Send, User, Bot, Clock, RefreshCw } from 'lucide-react'
 import { Card } from '../../components/common/Card'
 import { Input } from '../../components/common/Input'
-import api from '../../api/axios'
+import { Button } from '../../components/common/Button'
+import useChatStore from '../../store/useChatStore'
+import useAuthStore from '../../store/useAuthStore'
 import toast from 'react-hot-toast'
 
-export default function SupportTickets() {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [tickets, setTickets] = useState([])
-  const [loading, setLoading] = useState(true)
+export default function Support() {
+  const { activeChats, fetchConversations, fetchMessages, conversations, sendMessage } = useChatStore()
+  const { user } = useAuthStore()
+  
+  const [replyText, setReplyText] = useState('')
+  const [isLoading, setIsLoading] = useState(true)
+  const scrollRef = useRef(null)
 
-  const fetchTickets = async () => {
-    try {
-      const res = await api.get('/support/tickets')
-      let data = Array.isArray(res.data) ? res.data : (res.data?.tickets || res.data?.items || res.data?.data?.tickets || res.data?.data || [])
-      if (!Array.isArray(data)) data = []
-      setTickets(data)
-    } catch (err) {
-      console.error('Failed to fetch tickets:', err)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // Dynamically discover the admin email from conversations, or fallback
+  const partnerEmail = activeChats.length > 0 
+    ? (activeChats[0].partnerEmail || activeChats[0].email) 
+    : 'admin@shopvirsa.com'
 
   useEffect(() => {
-    fetchTickets()
-  }, [])
+    fetchConversations().then(() => setIsLoading(false))
+  }, [fetchConversations])
 
-  // Form states
-  const [subject, setSubject] = useState('')
-  const [details, setDetails] = useState('')
-  const [priority, setPriority] = useState('Medium')
-  const [category, setCategory] = useState('Wallet/Payments')
-  const [searchTerm, setSearchTerm] = useState('')
+  useEffect(() => {
+    if (partnerEmail && !isLoading) {
+      fetchMessages(partnerEmail)
+    }
+  }, [partnerEmail, fetchMessages, isLoading])
 
-  const handleCreateTicket = async (e) => {
+  // Polling every 5 seconds
+  useEffect(() => {
+    if (!partnerEmail) return
+    const interval = setInterval(() => {
+      fetchConversations()
+      fetchMessages(partnerEmail)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [partnerEmail, fetchConversations, fetchMessages])
+
+  const rawMessages = partnerEmail ? (conversations || {})[partnerEmail] : []
+  const currentMessages = Array.isArray(rawMessages) ? rawMessages : []
+
+  const handleSend = async (e) => {
     e.preventDefault()
-    if (!subject.trim() || !details.trim()) {
-      toast.error('Please fill in all fields')
-      return
-    }
-
-    try {
-      await api.post('/support/tickets', {
-        subject,
-        details,
-        category,
-        priority
-      })
-      toast.success('Ticket created successfully!')
-      setSubject('')
-      setDetails('')
-      setPriority('Medium')
-      setIsModalOpen(false)
-      fetchTickets() // Refresh the list
-    } catch (err) {
-      toast.error('Failed to create ticket')
-    }
+    if (!replyText.trim()) return
+    await sendMessage(partnerEmail, replyText)
+    setReplyText('')
   }
 
-  const filteredTickets = tickets.filter(t => 
-    (t.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
-    String(t.id || '').toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const openTicketsCount = tickets.filter(t => t.status === 'Open' || t.status === 'In Progress').length
-  const closedTicketsCount = tickets.filter(t => t.status === 'Closed').length
+  // Scroll to bottom on new messages
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [currentMessages])
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Help & Support</h1>
-          <p className="text-slate-400">Get assistance with your store and account.</p>
-        </div>
-        <Button onClick={() => setIsModalOpen(true)}>
-          <Plus className="w-4 h-4" /> Create Ticket
-        </Button>
+    <div className="space-y-6 animate-fade-in">
+      <div>
+        <h1 className="text-3xl font-bold mb-2">Help & Support</h1>
+        <p className="text-slate-400">Chat with Shopvirsa administrators directly.</p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        <Card className="flex items-center gap-4 border-l-4 border-primary">
-          <div className="p-3 bg-primary/10 text-primary rounded-xl">
-            <MessageCircle className="w-6 h-6" />
+      <div className="h-[600px] max-w-4xl mx-auto">
+        <Card className="h-full p-0 flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="p-4 border-b border-dark-border flex items-center justify-between bg-dark-bg/25">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold">
+                A
+              </div>
+              <div>
+                <h4 className="font-bold text-sm">Shopvirsa Support (Admin)</h4>
+                <div className="text-[10px] text-green-500 font-medium">Online</div>
+              </div>
+            </div>
+            <button onClick={() => { fetchConversations(); if (partnerEmail) fetchMessages(partnerEmail); }} className="text-slate-400 hover:text-white">
+              <RefreshCw className="w-4 h-4" />
+            </button>
           </div>
-          <div>
-            <div className="text-2xl font-bold">{tickets.length}</div>
-            <div className="text-xs text-slate-500 uppercase tracking-widest">Total Tickets</div>
-          </div>
-        </Card>
-        <Card className="flex items-center gap-4 border-l-4 border-green-500">
-          <div className="p-3 bg-green-500/10 text-green-500 rounded-xl">
-            <CheckCircle2 className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{closedTicketsCount}</div>
-            <div className="text-xs text-slate-500 uppercase tracking-widest">Resolved</div>
-          </div>
-        </Card>
-        <Card className="flex items-center gap-4 border-l-4 border-accent-gold">
-          <div className="p-3 bg-accent-gold/10 text-accent-gold rounded-xl">
-            <Clock className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-2xl font-bold">{openTicketsCount}</div>
-            <div className="text-xs text-slate-500 uppercase tracking-widest">Pending</div>
-          </div>
-        </Card>
-      </div>
 
-      <Card className="p-0 overflow-hidden">
-        <div className="p-6 border-b border-dark-border flex items-center justify-between">
-          <h3 className="font-bold">Recent Tickets</h3>
-          <div className="relative w-64">
-            <Input 
-              placeholder="Search tickets..." 
-              className="pl-10 h-9 text-xs" 
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-dark-bg text-slate-400 text-xs uppercase tracking-widest">
-              <tr>
-                <th className="px-6 py-4 font-medium">Ticket ID</th>
-                <th className="px-6 py-4 font-medium">Subject</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-                <th className="px-6 py-4 font-medium">Priority</th>
-                <th className="px-6 py-4 font-medium">Last Update</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-dark-border">
-              {loading && (
-                <tr>
-                  <td colSpan="5" className="text-center py-10 text-slate-500">Loading tickets...</td>
-                </tr>
-              )}
-              {!loading && filteredTickets.map((t) => (
-                <tr key={t.id} className="hover:bg-white/5 transition-colors cursor-pointer group">
-                  <td className="px-6 py-4 font-mono text-sm group-hover:text-primary">TKT-{t.id}</td>
-                  <td className="px-6 py-4 text-sm font-medium">{t.subject}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                      t.status === 'Open' || t.status === 'open' ? 'bg-blue-500/10 text-blue-500' :
-                      t.status === 'Closed' || t.status === 'closed' ? 'bg-slate-500/10 text-slate-500' :
-                      'bg-accent-gold/10 text-accent-gold'
+          {/* Messages */}
+          <div ref={scrollRef} className="flex-grow p-6 overflow-y-auto space-y-4 bg-dark-bg/10">
+            {isLoading ? (
+              <div className="p-10 text-center text-slate-500 text-sm">Loading chat...</div>
+            ) : currentMessages.length === 0 ? (
+              <div className="p-10 text-center text-slate-500 text-sm">No messages yet. Send a message to start the conversation!</div>
+            ) : (
+              currentMessages.map((msg, index) => {
+                if (!msg) return null;
+                // If we sent it, it's ours.
+                const isOurs = msg.sender === user?.email || msg.sender === 'seller' || (!msg.sender?.includes('admin') && msg.sender !== 'bot')
+                const isAdmin = !isOurs && msg.sender !== 'bot'
+                const isBot = msg.sender === 'bot'
+                
+                return (
+                  <div 
+                    key={msg.id || index} 
+                    className={`flex ${isOurs ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-[70%] rounded-2xl p-4 text-sm relative shadow-md ${
+                      isOurs 
+                        ? 'bg-primary text-white rounded-tr-none' 
+                        : isBot 
+                          ? 'bg-dark-card border border-dark-border text-slate-300 rounded-tl-none font-medium italic' 
+                          : 'bg-dark-card border border-dark-border text-white rounded-tl-none'
                     }`}>
-                      {t.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-1.5 text-xs text-slate-400">
-                      <div className={`w-1.5 h-1.5 rounded-full ${
-                        t.priority === 'Critical' || t.priority === 'critical' ? 'bg-red-500 shadow-lg shadow-red-500/50' :
-                        t.priority === 'High' || t.priority === 'high' ? 'bg-orange-500' : 'bg-slate-500'
-                      }`} />
-                      {t.priority}
+                      {!isOurs && (
+                        <div className="flex items-center gap-1 mb-1 text-[10px] text-slate-500">
+                          {isBot ? <Bot className="w-3 h-3 text-primary" /> : <User className="w-3 h-3" />}
+                          <span>{isBot ? 'Bot' : 'Admin Support'}</span>
+                        </div>
+                      )}
+                      <div>{msg.text || msg.body}</div>
+                      <div className="text-[9px] text-slate-500 text-right mt-1.5 opacity-70">
+                        {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : msg.time}
+                      </div>
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-xs text-slate-500">
-                    {t.created_at ? new Date(t.created_at).toLocaleDateString() : t.date}
-                  </td>
-                </tr>
-              ))}
-              {!loading && filteredTickets.length === 0 && (
-                <tr>
-                  <td colSpan="5" className="text-center py-10 text-slate-500">
-                    No tickets found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+                  </div>
+                )
+              })
+            )}
+          </div>
 
-      {/* Create Ticket Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-          <Card className="w-full max-w-lg relative z-10 p-8">
-            <h2 className="text-2xl font-bold mb-6">Create Support Ticket</h2>
-            <form className="space-y-4" onSubmit={handleCreateTicket}>
-              <Input 
-                label="Subject" 
-                placeholder="Brief description of the issue" 
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                required 
-              />
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-slate-300">Issue Details</label>
-                <textarea 
-                  className="input-field min-h-[120px] py-3" 
-                  placeholder="Explain the problem in detail..." 
-                  value={details}
-                  onChange={(e) => setDetails(e.target.value)}
-                  required 
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">Priority</label>
-                  <select 
-                    className="input-field" 
-                    value={priority}
-                    onChange={(e) => setPriority(e.target.value)}
-                  >
-                    <option>Low</option>
-                    <option>Medium</option>
-                    <option>High</option>
-                    <option>Critical</option>
-                  </select>
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-slate-300">Category</label>
-                  <select 
-                    className="input-field"
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                  >
-                    <option>Wallet/Payments</option>
-                    <option>Product Import</option>
-                    <option>Account Security</option>
-                    <option>Other</option>
-                  </select>
-                </div>
-              </div>
-              <div className="flex gap-4 pt-4">
-                <Button variant="outline" className="flex-grow" type="button" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button type="submit" className="flex-grow">Submit Ticket</Button>
-              </div>
-            </form>
-          </Card>
-        </div>
-      )}
+          {/* Input Form */}
+          <form onSubmit={handleSend} className="p-4 border-t border-dark-border flex gap-3 bg-dark-bg/25">
+            <input
+              type="text"
+              placeholder="Type your message to support..."
+              className="input-field flex-grow py-3"
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+            />
+            <Button type="submit" className="flex items-center justify-center p-3">
+              <Send className="w-5 h-5" />
+            </Button>
+          </form>
+        </Card>
+      </div>
     </div>
   )
 }
