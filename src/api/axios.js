@@ -5,6 +5,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 15000, // 15 second timeout to avoid hanging requests
 })
 
 // Request Interceptor for JWT
@@ -25,12 +26,25 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Auto logout or refresh token logic
+      // Auto logout on unauthorized
       localStorage.removeItem('token')
       window.location.href = '/login'
     }
+
+    // Network error or timeout (no response received)
+    if (!error.response) {
+      const networkError = new Error(
+        error.code === 'ECONNABORTED'
+          ? 'Request timed out. Please check your connection and try again.'
+          : 'Network error — unable to reach the server. Check your internet connection.'
+      )
+      networkError.isNetworkError = true
+      return Promise.reject(networkError)
+    }
+
     return Promise.reject(error)
   }
 )
 
 export default api
+

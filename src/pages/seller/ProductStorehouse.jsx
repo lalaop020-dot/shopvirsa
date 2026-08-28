@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Search, Filter, Warehouse, CheckCircle2 } from 'lucide-react'
+import { Search, Filter, Warehouse, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
 import { ProductCard } from '../../components/ProductCard'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
@@ -13,7 +13,8 @@ export default function ProductStorehouse() {
   const importProduct = useProductStore((state) => state.importProductToSellerStore)
   const fetchStoreroomProducts = useProductStore((state) => state.fetchStoreroomProducts)
   const fetchSellerProducts = useProductStore((state) => state.fetchSellerProducts)
-  const isLoading = useProductStore((state) => state.isLoading)
+  const isLoading = useProductStore((state) => state.storeroomLoading)
+  const fetchError = useProductStore((state) => state.storeroomError)
 
   useEffect(() => {
     fetchStoreroomProducts()
@@ -51,7 +52,7 @@ export default function ProductStorehouse() {
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const ITEMS_PER_PAGE = 200
+  const ITEMS_PER_PAGE = 24
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
@@ -78,28 +79,67 @@ export default function ProductStorehouse() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {paginatedProducts.map((product) => {
-          const isAlreadyImported = importedIds.includes(product.id)
-          return (
-            <div key={product.id} className="relative group">
-              <ProductCard 
-                product={product} 
-                onImport={() => handleImport(product)}
-                isImported={isAlreadyImported}
-                isLoading={isImporting === product.id}
-              />
-              {isAlreadyImported && (
-                <div className="absolute top-3 right-3 bg-green-500 text-white rounded-full p-1.5 shadow-md flex items-center justify-center">
-                  <CheckCircle2 className="w-4 h-4" />
-                </div>
-              )}
+      {/* Loading State */}
+      {isLoading && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-dark-card border border-dark-border rounded-xl overflow-hidden animate-pulse">
+              <div className="aspect-square bg-dark-bg" />
+              <div className="p-3 space-y-2">
+                <div className="h-3 bg-dark-bg rounded w-1/3" />
+                <div className="h-4 bg-dark-bg rounded w-4/5" />
+                <div className="h-4 bg-dark-bg rounded w-3/5" />
+                <div className="h-8 bg-dark-bg rounded mt-3" />
+              </div>
             </div>
-          )
-        })}
-      </div>
+          ))}
+        </div>
+      )}
 
-      {filteredProducts.length > 0 && (
+      {/* Error State */}
+      {!isLoading && fetchError && (
+        <div className="py-20 text-center bg-dark-card border border-red-500/20 rounded-2xl px-6 space-y-5">
+          <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto">
+            <AlertCircle className="w-8 h-8 text-red-400" />
+          </div>
+          <div className="space-y-2">
+            <h3 className="text-lg font-bold text-white">Failed to Load Storeroom</h3>
+            <p className="text-slate-400 max-w-md mx-auto text-sm">{fetchError}</p>
+          </div>
+          <button
+            onClick={() => { fetchStoreroomProducts(); fetchSellerProducts() }}
+            className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all"
+          >
+            <RefreshCw className="w-4 h-4" /> Retry
+          </button>
+        </div>
+      )}
+
+      {/* Product Grid */}
+      {!isLoading && !fetchError && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {paginatedProducts.map((product) => {
+            const isAlreadyImported = importedIds.includes(product.id)
+            return (
+              <div key={product.id} className="relative group">
+                <ProductCard 
+                  product={product} 
+                  onImport={() => handleImport(product)}
+                  isImported={isAlreadyImported}
+                  isLoading={isImporting === product.id}
+                />
+                {isAlreadyImported && (
+                  <div className="absolute top-3 right-3 bg-green-500 text-white rounded-full p-1.5 shadow-md flex items-center justify-center">
+                    <CheckCircle2 className="w-4 h-4" />
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {!isLoading && !fetchError && filteredProducts.length > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
@@ -112,7 +152,7 @@ export default function ProductStorehouse() {
         />
       )}
 
-      {filteredProducts.length === 0 && (
+      {!isLoading && !fetchError && filteredProducts.length === 0 && (
         <div className="text-center py-20 border-2 border-dashed border-dark-border rounded-xl">
           <div className="text-slate-500">No products found matching your search.</div>
         </div>

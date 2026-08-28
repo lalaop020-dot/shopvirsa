@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Trash2, Edit2, Play, Download, Search, AlertTriangle, FileJson, CheckCircle } from 'lucide-react'
+import { Plus, Trash2, Edit2, Play, Download, Search, AlertTriangle, FileJson, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react'
 import { Card } from '../../components/common/Card'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
@@ -16,6 +16,8 @@ export default function AdminStoreroom() {
   const editStoreroomProduct = useProductStore((state) => state.editStoreroomProduct)
   const removeStoreroomProduct = useProductStore((state) => state.removeStoreroomProduct)
   const bulkUploadProducts = useProductStore((state) => state.bulkUploadProducts)
+  const isLoading = useProductStore((state) => state.storeroomLoading)
+  const fetchError = useProductStore((state) => state.storeroomError)
   
   useEffect(() => {
     fetchStoreroomProducts()
@@ -130,7 +132,7 @@ export default function AdminStoreroom() {
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const ITEMS_PER_PAGE = 200
+  const ITEMS_PER_PAGE = 20
   const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1
   const paginatedProducts = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
@@ -224,13 +226,37 @@ export default function AdminStoreroom() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {isLoading ? (
+                <tr>
+                  <td colSpan="5" className="text-center py-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <span className="text-slate-400 text-sm">Loading storeroom products...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : fetchError ? (
+                <tr>
+                  <td colSpan="5" className="text-center py-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <AlertCircle className="w-8 h-8 text-red-400" />
+                      <span className="text-red-400 font-medium text-sm">{fetchError}</span>
+                      <button
+                        onClick={fetchStoreroomProducts}
+                        className="flex items-center gap-2 text-xs text-primary hover:underline"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Retry
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="text-center py-10 text-slate-500">
                     No products currently available in the storeroom.
                   </td>
                 </tr>
-              )}
+              ) : null}
             </tbody>
           </table>
         </div>

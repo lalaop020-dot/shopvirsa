@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Filter, LayoutGrid, List, ChevronDown, ShoppingBag, X, SlidersHorizontal, LogIn } from 'lucide-react'
+import { Search, Filter, LayoutGrid, List, ChevronDown, ShoppingBag, X, SlidersHorizontal, LogIn, AlertCircle, RefreshCw } from 'lucide-react'
 import { ProductCard } from '../components/ProductCard'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
@@ -18,7 +18,8 @@ export default function ProductListing() {
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const activeProducts = useProductStore((state) => state.marketplaceProducts) || []
-  const isLoading = useProductStore((state) => state.isLoading)
+  const isLoading = useProductStore((state) => state.marketplaceLoading)
+  const fetchError = useProductStore((state) => state.marketplaceError)
   const categories = useProductStore((state) => state.categories) || []
   const fetchMarketplaceProducts = useProductStore((state) => state.fetchMarketplaceProducts)
   const fetchCategories = useProductStore((state) => state.fetchCategories)
@@ -58,7 +59,7 @@ export default function ProductListing() {
     return matchesCategory && matchesSearch
   })
 
-  const ITEMS_PER_PAGE = 200
+  const ITEMS_PER_PAGE = 24
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
@@ -216,6 +217,22 @@ export default function ProductListing() {
                   <Button variant="outline">Create Account</Button>
                 </Link>
               </div>
+            </div>
+          ) : fetchError ? (
+            <div className="py-20 text-center bg-dark-card border border-red-500/20 rounded-2xl px-6 space-y-5">
+              <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto">
+                <AlertCircle className="w-8 h-8 text-red-400" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-white">Failed to Load Products</h3>
+                <p className="text-slate-400 max-w-md mx-auto text-sm">{fetchError}</p>
+              </div>
+              <Button
+                onClick={() => { fetchMarketplaceProducts(); fetchCategories() }}
+                className="gap-2"
+              >
+                <RefreshCw className="w-4 h-4" /> Retry
+              </Button>
             </div>
           ) : isLoading ? (
             <div className="py-20 text-center space-y-4">

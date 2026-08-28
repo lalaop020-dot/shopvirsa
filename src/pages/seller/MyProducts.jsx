@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, Search, Edit2, Trash2, ExternalLink, ShieldCheck } from 'lucide-react'
+import { Plus, Search, Edit2, Trash2, ExternalLink, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/common/Button'
 import { Card } from '../../components/common/Card'
@@ -17,7 +17,8 @@ export default function MyProducts() {
   const fetchSellerProducts = useProductStore((state) => state.fetchSellerProducts)
   const removeSellerProduct = useProductStore((state) => state.removeSellerProduct)
   const updateSellerProduct = useProductStore((state) => state.updateSellerProduct)
-  const isLoading = useProductStore((state) => state.isLoading)
+  const isLoading = useProductStore((state) => state.sellerLoading)
+  const fetchError = useProductStore((state) => state.sellerError)
 
   useEffect(() => {
     fetchSellerProducts()
@@ -78,7 +79,7 @@ export default function MyProducts() {
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const ITEMS_PER_PAGE = 200
+  const ITEMS_PER_PAGE = 20
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1
   const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
@@ -168,13 +169,37 @@ export default function MyProducts() {
                   </td>
                 </tr>
               ))}
-              {filteredProducts.length === 0 && (
+              {isLoading ? (
+                <tr>
+                  <td colSpan="6" className="text-center py-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      <span className="text-slate-400 text-sm">Loading your products...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : fetchError ? (
+                <tr>
+                  <td colSpan="6" className="text-center py-12">
+                    <div className="flex flex-col items-center gap-3">
+                      <AlertCircle className="w-8 h-8 text-red-400" />
+                      <span className="text-red-400 font-medium text-sm">{fetchError}</span>
+                      <button
+                        onClick={fetchSellerProducts}
+                        className="flex items-center gap-2 text-xs text-primary hover:underline"
+                      >
+                        <RefreshCw className="w-3 h-3" /> Retry
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan="6" className="text-center py-10 text-slate-500">
                     You have not imported any products yet. Go to the Storeroom to select items.
                   </td>
                 </tr>
-              )}
+              ) : null}
             </tbody>
           </table>
         </div>
