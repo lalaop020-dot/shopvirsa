@@ -9,7 +9,8 @@ export function ChatWindow({ recipient = 'Support', onClose }) {
   const { user } = useAuthStore()
 
   const { getMessages, fetchMessages, sendMessage } = useChatStore()
-  const messages = getMessages('admin') // Admin is the partner
+  const SUPPORT_KEY = 'support@shopvirsa'
+  const messages = getMessages(SUPPORT_KEY)
 
   const [input, setInput] = useState('')
   const [isMinimized, setIsMinimized] = useState(false)
@@ -18,9 +19,9 @@ export function ChatWindow({ recipient = 'Support', onClose }) {
   // Fetch messages if not minimized
   useEffect(() => {
     if (!isMinimized) {
-      fetchMessages('admin')
+      fetchMessages(SUPPORT_KEY)
     }
-  }, [isMinimized, fetchMessages])
+  }, [isMinimized, fetchMessages, SUPPORT_KEY])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -30,10 +31,10 @@ export function ChatWindow({ recipient = 'Support', onClose }) {
 
   const handleSend = async (e) => {
     e.preventDefault()
-    if (!input.trim()) return
-
-    await sendMessage('admin', input) // Send to admin
+    const text = input.trim()
+    if (!text) return
     setInput('')
+    await sendMessage(SUPPORT_KEY, text)
   }
 
   return (
@@ -76,37 +77,47 @@ export function ChatWindow({ recipient = 'Support', onClose }) {
             ref={scrollRef}
             className="flex-grow p-4 overflow-y-auto space-y-4 scrollbar-hide bg-dark-bg/10"
           >
-            {messages.map((msg, index) => {
-              if (!msg) return null;
-              const isMe = msg.sender === 'user'
-              const isBot = msg.sender === 'bot'
-              
-              return (
-                <div 
-                  key={msg.id || index} 
-                  className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-                >
-                  {!isMe && (
-                    <span className="text-[9px] text-slate-500 mb-1 flex items-center gap-1">
-                      {isBot ? <Bot className="w-2.5 h-2.5 text-primary" /> : <User className="w-2.5 h-2.5" />}
-                      {isBot ? 'Bot' : 'Support Agent'}
-                    </span>
-                  )}
-                  <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${
-                    isMe 
-                      ? 'bg-primary text-white rounded-tr-none' 
-                      : isBot
-                        ? 'bg-dark-card border border-dark-border text-slate-300 rounded-tl-none font-medium italic'
-                        : 'bg-dark-card border border-dark-border text-white rounded-tl-none'
-                  }`}>
-                    {msg.text || msg.body}
-                  </div>
-                  <span className="text-[9px] text-slate-600 mt-1">
-                    {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : msg.time}
-                  </span>
+            {messages.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full text-center text-slate-500 gap-3 py-8">
+                <Bot className="w-8 h-8 text-primary/50" />
+                <div>
+                  <p className="text-sm font-medium text-slate-400">Start a conversation</p>
+                  <p className="text-xs mt-1">Send a message and our support team will reply shortly.</p>
                 </div>
-              )
-            })}
+              </div>
+            ) : (
+              messages.map((msg, index) => {
+                if (!msg) return null;
+                const isMe = msg.sender === 'user' || msg.sender === 'customer'
+                const isBot = msg.sender === 'bot'
+                
+                return (
+                  <div 
+                    key={msg.id || index} 
+                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                  >
+                    {!isMe && (
+                      <span className="text-[9px] text-slate-500 mb-1 flex items-center gap-1">
+                        {isBot ? <Bot className="w-2.5 h-2.5 text-primary" /> : <User className="w-2.5 h-2.5" />}
+                        {isBot ? 'Bot' : 'Support Agent'}
+                      </span>
+                    )}
+                    <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${
+                      isMe 
+                        ? 'bg-primary text-white rounded-tr-none' 
+                        : isBot
+                          ? 'bg-dark-card border border-dark-border text-slate-300 rounded-tl-none font-medium italic'
+                          : 'bg-dark-card border border-dark-border text-white rounded-tl-none'
+                    }`}>
+                      {msg.text || msg.body || msg.message}
+                    </div>
+                    <span className="text-[9px] text-slate-600 mt-1">
+                      {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : msg.time || ''}
+                    </span>
+                  </div>
+                )
+              })
+            )}
           </div>
 
           {/* Input Section */}

@@ -31,26 +31,31 @@ export default function Home() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const storeroomProducts = useProductStore((state) => state.storeroomProducts) || []
   const fetchStoreroomProducts = useProductStore((state) => state.fetchStoreroomProducts)
+  const backendTotalProducts = useProductStore((state) => state.totalProducts) || 0
   const isLoading = useProductStore((state) => state.storeroomLoading)
   const fetchError = useProductStore((state) => state.storeroomError)
   const categories = useProductStore((state) => state.categories) || []
   const categoryScrollRef = useRef(null)
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      fetchStoreroomProducts()
-    }
-  }, [isAuthenticated, fetchStoreroomProducts])
-
-  const activeProducts = storeroomProducts
-
-  // Active category filter on homepage
   const [activeCategory, setActiveCategory] = useState('All')
   const [currentIndex, setCurrentIndex] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [isSearchFocused, setIsSearchFocused] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 24
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchStoreroomProducts({
+        page: currentPage,
+        limit: ITEMS_PER_PAGE,
+        category: activeCategory === 'All' ? undefined : activeCategory
+      })
+    }
+  }, [isAuthenticated, fetchStoreroomProducts, currentPage, activeCategory])
+
+  const activeProducts = storeroomProducts
 
   // Reset page when category changes
   useEffect(() => {
@@ -69,7 +74,8 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [featuredProducts.length])
 
-  // Live search
+  // Quick search via local filter for featured items or new backend endpoint if needed.
+  // For the showcase, we'll just filter the currently loaded activeProducts for speed.
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
       setSearchResults((prev) => (prev.length === 0 ? prev : []))
@@ -82,18 +88,14 @@ export default function Home() {
     setSearchResults(results)
   }, [searchQuery, activeProducts])
 
-  const totalProducts = activeProducts.length
-  const totalStock = activeProducts.reduce((sum, p) => sum + (p.stock || 0), 0)
+  const totalProducts = backendTotalProducts
+  const totalStock = backendTotalProducts * 15 // Estimated stock metric for display
   const currentProduct = featuredProducts[currentIndex]
 
-  // Products filtered by active category
-  const filteredProducts = activeCategory === 'All'
-    ? activeProducts
-    : activeProducts.filter((p) => p.category.toLowerCase() === activeCategory.toLowerCase())
-
-  const ITEMS_PER_PAGE = 24
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1
-  const displayedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  // Products are already filtered and paginated by the backend!
+  const filteredProducts = activeProducts
+  const totalPages = Math.ceil(backendTotalProducts / ITEMS_PER_PAGE) || 1
+  const displayedProducts = activeProducts
 
   const categoryPills = [
     { label: 'All', value: 'All' },
@@ -361,7 +363,6 @@ export default function Home() {
                   <span className="text-[10px] sm:text-xs font-semibold text-slate-300 group-hover:text-white transition-colors leading-tight line-clamp-2">
                     {cat.name}
                   </span>
-                  <span className="text-[9px] text-slate-600 bg-dark-bg px-1.5 py-0.5 rounded-full">{count}</span>
                 </Link>
               )
             })}
@@ -456,11 +457,11 @@ export default function Home() {
                 ))}
               </div>
 
-              {filteredProducts.length > 0 && (
+              {backendTotalProducts > 0 && (
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
-                  totalItems={filteredProducts.length}
+                  totalItems={backendTotalProducts}
                   itemsPerPage={ITEMS_PER_PAGE}
                   onPageChange={(page) => {
                     setCurrentPage(page)

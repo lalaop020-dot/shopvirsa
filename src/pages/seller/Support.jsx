@@ -61,8 +61,8 @@ export default function SupportTickets() {
   }
 
   const filteredTickets = tickets.filter(t => 
-    t.subject.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    t.id.toLowerCase().includes(searchTerm.toLowerCase())
+    (t.subject || '').toLowerCase().includes(searchTerm.toLowerCase()) || 
+    String(t.id || '').toLowerCase().includes(searchTerm.toLowerCase())
   )
 
   const openTicketsCount = tickets.filter(t => t.status === 'Open' || t.status === 'In Progress').length

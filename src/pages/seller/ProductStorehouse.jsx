@@ -16,18 +16,33 @@ export default function ProductStorehouse() {
   const isLoading = useProductStore((state) => state.storeroomLoading)
   const fetchError = useProductStore((state) => state.storeroomError)
 
-  useEffect(() => {
-    fetchStoreroomProducts()
-    fetchSellerProducts()
-  }, [fetchStoreroomProducts, fetchSellerProducts])
+  const backendTotalProducts = useProductStore((state) => state.totalProducts) || 0
 
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [isImporting, setIsImporting] = useState(null)
+  const ITEMS_PER_PAGE = 24
+
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 500)
+    return () => clearTimeout(handler)
+  }, [searchTerm])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm])
+  }, [debouncedSearch])
+
+  useEffect(() => {
+    fetchStoreroomProducts({
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+      search: debouncedSearch || undefined
+    })
+    fetchSellerProducts()
+  }, [fetchStoreroomProducts, fetchSellerProducts, currentPage, debouncedSearch])
 
   const importedIds = sellerProductsList.map(p => p.globalId || p.product_id || p.id)
 
@@ -47,14 +62,9 @@ export default function ProductStorehouse() {
     }
   }
 
-  const filteredProducts = storeroomProducts.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.category.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const ITEMS_PER_PAGE = 24
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1
-  const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const filteredProducts = storeroomProducts
+  const totalPages = Math.ceil(backendTotalProducts / ITEMS_PER_PAGE) || 1
+  const paginatedProducts = filteredProducts
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -139,11 +149,11 @@ export default function ProductStorehouse() {
         </div>
       )}
 
-      {!isLoading && !fetchError && filteredProducts.length > 0 && (
+      {!isLoading && !fetchError && backendTotalProducts > 0 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}
-          totalItems={filteredProducts.length}
+          totalItems={backendTotalProducts}
           itemsPerPage={ITEMS_PER_PAGE}
           onPageChange={(page) => {
             setCurrentPage(page)
@@ -152,7 +162,7 @@ export default function ProductStorehouse() {
         />
       )}
 
-      {!isLoading && !fetchError && filteredProducts.length === 0 && (
+      {!isLoading && !fetchError && backendTotalProducts === 0 && (
         <div className="text-center py-20 border-2 border-dashed border-dark-border rounded-xl">
           <div className="text-slate-500">No products found matching your search.</div>
         </div>

@@ -3,8 +3,10 @@ import { productService } from '../services/productService'
 
 export const useProductStore = create((set, get) => ({
   storeroomProducts: [],
+  totalProducts: 0,
   sellerProducts: [],
   marketplaceProducts: [],
+  totalMarketplaceProducts: 0,
   categories: [],
 
   // Per-feature loading/error states (prevents cross-contamination between pages)
@@ -25,8 +27,9 @@ export const useProductStore = create((set, get) => ({
     try {
       const data = await productService.getAllProducts(params)
       let products = Array.isArray(data) ? data : (data.items || data.products || data.data?.products || data.data || [])
+      let total = data.total || data.data?.total || products.length
       if (!Array.isArray(products)) products = []
-      set({ storeroomProducts: products, storeroomError: null })
+      set({ storeroomProducts: products, totalProducts: total, storeroomError: null })
     } catch (error) {
       const message = error?.response?.data?.detail?.[0]?.msg
         || error?.response?.data?.message
@@ -155,8 +158,9 @@ export const useProductStore = create((set, get) => ({
     try {
       const data = await productService.getMarketplaceProducts(params)
       let products = Array.isArray(data) ? data : (data.items || data.products || data.data?.products || data.data || [])
+      let total = data.total || data.data?.total || products.length
       if (!Array.isArray(products)) products = []
-      set({ marketplaceProducts: products, marketplaceError: null })
+      set({ marketplaceProducts: products, totalMarketplaceProducts: total, marketplaceError: null })
     } catch (error) {
       const message = error?.response?.data?.detail?.[0]?.msg
         || error?.response?.data?.message

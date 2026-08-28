@@ -15,7 +15,8 @@ export const orderService = {
 
   // Admin: Get all orders across all sellers
   getAllOrders: async (params) => {
-    const response = await api.get('/admin/orders', { params })
+    // Attempt to use the existing orders endpoint for admins if a specific one is missing
+    const response = await api.get('/orders', { params })
     return response.data
   },
 

@@ -43,7 +43,28 @@ export default function Checkout() {
   const [txHash, setTxHash] = useState('')
   const [senderWallet, setSenderWallet] = useState('')
 
-  const nextStep = () => setStep(s => Math.min(s + 1, 3))
+  const nextStep = () => {
+    if (step === 1) {
+      if (!firstName || !lastName || !address || !city || !zip) {
+        toast.error('Please fill in all required shipping fields.')
+        return
+      }
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (email && !emailRegex.test(email)) {
+        toast.error('Please enter a valid email address.')
+        return
+      }
+    }
+    
+    if (step === 2) {
+      if (!txHash || !senderWallet) {
+        toast.error('Please provide payment transaction details.')
+        return
+      }
+    }
+
+    setStep(s => Math.min(s + 1, 3))
+  }
   const prevStep = () => setStep(s => Math.max(s - 1, 1))
 
   if (items.length === 0 && step !== 4) {
@@ -55,6 +76,19 @@ export default function Checkout() {
 
     const { clearCart } = useCartStore.getState()
     const { createOrder } = useOrderStore.getState()
+
+    if (!items || items.length === 0) {
+      toast.error('Cannot place an empty order.')
+      setIsProcessing(false)
+      return
+    }
+
+    const hasInvalidItems = items.some(item => !item.id && !item.globalId || item.quantity <= 0 || item.price < 0)
+    if (hasInvalidItems) {
+      toast.error('Invalid products in cart. Please clear and try again.')
+      setIsProcessing(false)
+      return
+    }
 
     const shippingInfo = {
       name: `${firstName} ${lastName}`.trim() || 'Customer',

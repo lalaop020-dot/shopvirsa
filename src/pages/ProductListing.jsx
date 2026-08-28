@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { Search, Filter, LayoutGrid, List, ChevronDown, ShoppingBag, X, SlidersHorizontal, LogIn, AlertCircle, RefreshCw } from 'lucide-react'
+import { Search, Filter, LayoutGrid, List, ShoppingBag, X, SlidersHorizontal, LogIn, AlertCircle, RefreshCw } from 'lucide-react'
 import { ProductCard } from '../components/ProductCard'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
@@ -19,6 +19,7 @@ export default function ProductListing() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const fetchStoreroomProducts = useProductStore((state) => state.fetchStoreroomProducts)
   const storeroomProducts = useProductStore((state) => state.storeroomProducts) || []
+  const backendTotalProducts = useProductStore((state) => state.totalProducts) || 0
   const activeProducts = storeroomProducts
   const categories = useProductStore((state) => state.categories) || []
   
@@ -26,10 +27,27 @@ export default function ProductListing() {
   const fetchError = useProductStore((state) => state.storeroomError)
   const fetchCategories = useProductStore((state) => state.fetchCategories)
 
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   useEffect(() => {
-    fetchStoreroomProducts()
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 500)
+    return () => clearTimeout(handler)
+  }, [searchTerm])
+
+  const ITEMS_PER_PAGE = 24;
+const [sortOption, setSortOption] = useState('');
+const [priceMax, setPriceMax] = useState(5000);
+
+  useEffect(() => {
+    fetchStoreroomProducts({
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+      category: (!slug || slug.toLowerCase() === 'all') ? undefined : slug,
+      search: debouncedSearch || undefined
+    })
     fetchCategories()
-  }, [fetchStoreroomProducts, fetchCategories])
+  }, [fetchStoreroomProducts, fetchCategories, currentPage, slug, debouncedSearch])
 
   const featuredCategories = [
     'Electronics',
@@ -43,25 +61,30 @@ export default function ProductListing() {
   ]
 
   const getCategoryCount = (catName) => {
-    if (catName === 'All') return activeProducts.length
-    return activeProducts.filter((p) => p.category.toLowerCase() === catName.toLowerCase()).length
+    // Cannot accurately count local items if we only fetch 24 at a time via backend,
+    // so we hide or fake counts unless the backend provides them per category.
+    return '' 
   }
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [slug, searchTerm])
+    setSortOption('')
+  }, [slug, debouncedSearch])
 
-  const filteredProducts = activeProducts.filter((product) => {
-    const matchesCategory = !slug || slug === 'all' || product.category.toLowerCase() === slug.toLowerCase()
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase())
-    return matchesCategory && matchesSearch
+  const totalPages = Math.ceil(backendTotalProducts / ITEMS_PER_PAGE) || 1
+  const sortedProducts = [...activeProducts]
+  .filter(p => {
+    const price = parseFloat(p.price) || 0;
+    return price <= priceMax;
   })
-
-  const ITEMS_PER_PAGE = 24
-  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1
-  const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  .sort((a, b) => {
+    if (sortOption === 'price-asc') return (parseFloat(a.price) || 0) - (parseFloat(b.price) || 0);
+    if (sortOption === 'price-desc') return (parseFloat(b.price) || 0) - (parseFloat(a.price) || 0);
+    if (sortOption === 'name-asc') return a.name?.localeCompare(b.name);
+    if (sortOption === 'name-desc') return b.name?.localeCompare(a.name);
+    return 0; // default order (backend)
+  });
+const paginatedProducts = sortedProducts;
 
   const categoryList = Array.from(new Set(['All', ...featuredCategories, ...categories]))
 
@@ -107,24 +130,27 @@ export default function ProductListing() {
 
       <div>
         <h3 className="font-bold mb-3 uppercase text-xs tracking-widest text-slate-500">Price Range</h3>
-        <input type="range" className="w-full accent-primary" min="0" max="5000" />
+        <div className="space-y-2">
+  <label className="text-sm font-medium text-slate-400">Max Price ($)</label>
+  <input
+    type="range"
+    className="w-full accent-primary"
+    min="0"
+    max="5000"
+    value={priceMax}
+    onChange={e => setPriceMax(Number(e.target.value))}
+  />
+  <div className="flex justify-between text-xs text-slate-500">
+    <span>$0</span>
+    <span>${priceMax}</span>
+  </div>
+</div>
         <div className="flex justify-between text-xs text-slate-500 mt-1">
           <span>$0</span>
           <span>$5,000+</span>
         </div>
       </div>
 
-      <div>
-        <h3 className="font-bold mb-3 uppercase text-xs tracking-widest text-slate-500">Brand</h3>
-        <div className="space-y-2">
-          {currentBrands.map((brand) => (
-            <label key={brand} className="flex items-center gap-3 cursor-pointer group">
-              <input type="checkbox" className="w-4 h-4 rounded border-dark-border bg-dark-bg accent-primary" />
-              <span className="text-sm text-slate-400 group-hover:text-white">{brand}</span>
-            </label>
-          ))}
-        </div>
-      </div>
     </div>
   )
 
@@ -138,7 +164,7 @@ export default function ProductListing() {
             {slug ? slug : 'Marketplace'}
           </h1>
           <p className="text-slate-400 text-sm">
-            {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} available
+            {backendTotalProducts} product{backendTotalProducts !== 1 ? 's' : ''} available
           </p>
         </div>
         <div className="flex items-center gap-2 sm:gap-3">
@@ -165,9 +191,17 @@ export default function ProductListing() {
             </button>
           </div>
 
-          <Button variant="outline" size="sm" className="gap-1.5 text-sm hidden sm:flex">
-            Sort by: Popularity <ChevronDown className="w-3.5 h-3.5" />
-          </Button>
+          <select
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value)}
+            className="bg-dark-card border border-dark-border text-sm text-slate-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary/50 cursor-pointer hover:border-primary/40 transition-colors"
+          >
+            <option value="">Sort: Default</option>
+            <option value="price-asc">Price: Low → High</option>
+            <option value="price-desc">Price: High → Low</option>
+            <option value="name-asc">Name: A → Z</option>
+            <option value="name-desc">Name: Z → A</option>
+          </select>
         </div>
       </div>
 
@@ -267,11 +301,11 @@ export default function ProductListing() {
                 ))}
               </div>
 
-              {filteredProducts.length > 0 && (
+              {backendTotalProducts > 0 && (
                 <Pagination
                   currentPage={currentPage}
                   totalPages={totalPages}
-                  totalItems={filteredProducts.length}
+                  totalItems={backendTotalProducts}
                   itemsPerPage={ITEMS_PER_PAGE}
                   onPageChange={(page) => {
                     setCurrentPage(page)
@@ -281,7 +315,7 @@ export default function ProductListing() {
                 />
               )}
 
-              {filteredProducts.length === 0 && (
+              {backendTotalProducts === 0 && (
                 <div className="text-center py-20 bg-dark-card border border-dark-border rounded-xl text-slate-500">
                   <ShoppingBag className="w-10 h-10 mx-auto mb-3 text-slate-600" />
                   No products available in this section.

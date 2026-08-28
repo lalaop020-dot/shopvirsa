@@ -18,17 +18,31 @@ export default function AdminStoreroom() {
   const bulkUploadProducts = useProductStore((state) => state.bulkUploadProducts)
   const isLoading = useProductStore((state) => state.storeroomLoading)
   const fetchError = useProductStore((state) => state.storeroomError)
+  const backendTotalProducts = useProductStore((state) => state.totalProducts) || 0
   
-  useEffect(() => {
-    fetchStoreroomProducts()
-  }, [fetchStoreroomProducts])
-
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const ITEMS_PER_PAGE = 20
+
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearch(searchTerm)
+    }, 500)
+    return () => clearTimeout(handler)
+  }, [searchTerm])
+
+  useEffect(() => {
+    fetchStoreroomProducts({
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+      search: debouncedSearch || undefined
+    })
+  }, [fetchStoreroomProducts, currentPage, debouncedSearch])
 
   useEffect(() => {
     setCurrentPage(1)
-  }, [searchTerm])
+  }, [debouncedSearch])
   
   // Modals state
   const [productModalOpen, setProductModalOpen] = useState(false)
@@ -127,14 +141,9 @@ export default function AdminStoreroom() {
     }
   }
 
-  const filtered = storeroomProducts.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.category.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const ITEMS_PER_PAGE = 20
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1
-  const paginatedProducts = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+  const filtered = storeroomProducts
+  const totalPages = Math.ceil(backendTotalProducts / ITEMS_PER_PAGE) || 1
+  const paginatedProducts = filtered
 
   const sampleJson = JSON.stringify([
     {
@@ -260,11 +269,11 @@ export default function AdminStoreroom() {
             </tbody>
           </table>
         </div>
-        {filtered.length > 0 && (
+        {backendTotalProducts > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filtered.length}
+            totalItems={backendTotalProducts}
             itemsPerPage={ITEMS_PER_PAGE}
             onPageChange={(page) => {
               setCurrentPage(page)
