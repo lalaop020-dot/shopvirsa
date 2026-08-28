@@ -12,6 +12,7 @@ import { ProductCard } from '../components/ProductCard'
 import { Pagination } from '../components/common/Pagination'
 import { useProductStore } from '../store/useProductStore'
 import useAuthStore from '../store/useAuthStore'
+import { AlertCircle, RefreshCw } from 'lucide-react'
 
 // ─── Category config ──────────────────────────────────────────────────────────
 const FEATURED_CATEGORIES = [
@@ -30,6 +31,8 @@ export default function Home() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
   const marketplaceProducts = useProductStore((state) => state.marketplaceProducts) || []
   const fetchMarketplaceProducts = useProductStore((state) => state.fetchMarketplaceProducts)
+  const isLoading = useProductStore((state) => state.marketplaceLoading)
+  const fetchError = useProductStore((state) => state.marketplaceError)
   const categories = useProductStore((state) => state.categories) || []
   const categoryScrollRef = useRef(null)
 
@@ -88,7 +91,7 @@ export default function Home() {
     ? activeProducts
     : activeProducts.filter((p) => p.category.toLowerCase() === activeCategory.toLowerCase())
 
-  const ITEMS_PER_PAGE = 200
+  const ITEMS_PER_PAGE = 24
   const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1
   const displayedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
@@ -415,8 +418,37 @@ export default function Home() {
             </button>
           </div>
 
+          {/* Loading State */}
+          {isLoading && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div key={i} className="bg-dark-card border border-dark-border rounded-xl overflow-hidden animate-pulse h-[280px]">
+                  <div className="h-[140px] bg-dark-bg" />
+                  <div className="p-3 space-y-2">
+                    <div className="h-3 bg-dark-bg rounded w-1/3" />
+                    <div className="h-4 bg-dark-bg rounded w-4/5" />
+                    <div className="h-4 bg-dark-bg rounded w-3/5" />
+                    <div className="h-8 bg-dark-bg rounded mt-3" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Error State */}
+          {!isLoading && fetchError && (
+            <div className="text-center py-16 bg-dark-card border border-red-500/20 rounded-2xl px-6">
+              <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+              <h3 className="text-xl font-bold text-white mb-2">Failed to load products</h3>
+              <p className="text-slate-400 text-sm mb-6">{fetchError}</p>
+              <Button onClick={() => fetchMarketplaceProducts()} className="gap-2">
+                <RefreshCw className="w-4 h-4" /> Try Again
+              </Button>
+            </div>
+          )}
+
           {/* Product Grid */}
-          {activeProducts.length > 0 ? (
+          {!isLoading && !fetchError && activeProducts.length > 0 ? (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2 sm:gap-3">
                 {displayedProducts.map((product) => (
@@ -444,11 +476,11 @@ export default function Home() {
                 </div>
               )}
             </>
-          ) : (
+          ) : !isLoading && !fetchError ? (
             <div className="text-center py-16 bg-dark-card border border-dark-border rounded-2xl text-slate-500">
               No products available right now. Check back soon.
             </div>
-          )}
+          ) : null}
         </section>
       )}
 
