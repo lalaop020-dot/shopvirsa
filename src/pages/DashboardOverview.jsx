@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Card } from '../components/common/Card'
 import { Button } from '../components/common/Button'
-import { TrendingUp, TrendingDown, Users, ShoppingCart, DollarSign, Package, AlertCircle, BarChart3, Clock } from 'lucide-react'
+import { TrendingUp, TrendingDown, Users, ShoppingCart, DollarSign, Package, AlertCircle, BarChart3, Clock, CheckCircle2 } from 'lucide-react'
 import useAuthStore from '../store/useAuthStore'
 import usePlatformStore, { DEFAULT_BALANCE } from '../store/usePlatformStore'
 import { useProductStore } from '../store/useProductStore'
@@ -221,6 +221,36 @@ export default function DashboardOverview({ role }) {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {role === 'seller' && (
+        <div className={`p-4 rounded-xl border flex items-center gap-3 ${
+          (user?.status === 'Approved' || user?.status === 'approved')
+            ? 'bg-green-500/10 border-green-500/20 text-green-500'
+            : (user?.status === 'Rejected' || user?.status === 'rejected')
+            ? 'bg-red-500/10 border-red-500/20 text-red-500'
+            : 'bg-accent-gold/10 border-accent-gold/20 text-accent-gold'
+        }`}>
+          {user?.status === 'Approved' || user?.status === 'approved' ? (
+            <CheckCircle2 className="w-6 h-6" />
+          ) : user?.status === 'Rejected' || user?.status === 'rejected' ? (
+            <AlertCircle className="w-6 h-6" />
+          ) : (
+            <Clock className="w-6 h-6" />
+          )}
+          <div>
+            <h3 className="font-bold text-sm">
+              Account Status: {user?.status ? user.status.charAt(0).toUpperCase() + user.status.slice(1) : 'Pending'}
+            </h3>
+            <p className="text-xs opacity-80 mt-0.5">
+              {user?.status === 'Approved' || user?.status === 'approved'
+                ? 'Your seller account is approved and active.'
+                : user?.status === 'Rejected' || user?.status === 'rejected'
+                ? 'Your seller application was rejected. Please contact support.'
+                : 'Your seller application is under review by our team.'}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, i) => (
           <Card key={i} className="flex flex-col gap-4">
