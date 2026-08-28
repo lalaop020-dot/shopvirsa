@@ -28,9 +28,12 @@ export const useProductStore = create((set, get) => ({
       if (!Array.isArray(products)) products = []
       set({ storeroomProducts: products, storeroomError: null })
     } catch (error) {
-      const message = error?.response?.data?.message || error?.message || 'Failed to load storeroom products. Check your connection.'
+      const message = error?.response?.data?.detail?.[0]?.msg
+        || error?.response?.data?.message
+        || error?.message
+        || 'Failed to load storeroom products. Check your connection.'
       set({ storeroomError: message, storeroomProducts: [] })
-      console.error('[ProductStore] fetchStoreroomProducts:', error)
+      console.error('[ProductStore] fetchStoreroomProducts — backend response:', error?.response?.data || error?.message)
     } finally {
       set({ storeroomLoading: false })
     }
@@ -91,9 +94,12 @@ export const useProductStore = create((set, get) => ({
       if (!Array.isArray(products)) products = []
       set({ sellerProducts: products, sellerError: null })
     } catch (error) {
-      const message = error?.response?.data?.message || error?.message || 'Failed to load your products. Check your connection.'
+      const message = error?.response?.data?.detail?.[0]?.msg
+        || error?.response?.data?.message
+        || error?.message
+        || 'Failed to load your products. Check your connection.'
       set({ sellerError: message, sellerProducts: [] })
-      console.error('[ProductStore] fetchSellerProducts:', error)
+      console.error('[ProductStore] fetchSellerProducts — backend response:', error?.response?.data || error?.message)
     } finally {
       set({ sellerLoading: false })
     }
@@ -152,9 +158,12 @@ export const useProductStore = create((set, get) => ({
       if (!Array.isArray(products)) products = []
       set({ marketplaceProducts: products, marketplaceError: null })
     } catch (error) {
-      const message = error?.response?.data?.message || error?.message || 'Failed to load marketplace products. Check your connection.'
+      const message = error?.response?.data?.detail?.[0]?.msg
+        || error?.response?.data?.message
+        || error?.message
+        || 'Failed to load marketplace products. Check your connection.'
       set({ marketplaceError: message, marketplaceProducts: [] })
-      console.error('[ProductStore] fetchMarketplaceProducts:', error)
+      console.error('[ProductStore] fetchMarketplaceProducts — backend response:', error?.response?.data || error?.message)
     } finally {
       set({ marketplaceLoading: false })
     }

@@ -2,12 +2,14 @@ import api from '../api/axios'
 
 export const productService = {
   // Public/Customer Marketplace
+  // Backend limit: maximum=100, minimum=1, default=50 (per OpenAPI spec)
   getMarketplaceProducts: async (params = {}) => {
-    const response = await api.get('/marketplace/products', { params: { limit: 200, ...params } })
+    const response = await api.get('/marketplace/products', { params: { limit: 100, ...params } })
     return response.data
   },
 
   // Admin/Global products (Storehouse)
+  // Backend limit: maximum=200, minimum=1, default=50 (per OpenAPI spec)
   getAllProducts: async (params = {}) => {
     const response = await api.get('/products', { params: { limit: 200, ...params } })
     return response.data
@@ -45,8 +47,9 @@ export const productService = {
   },
 
   // Seller: Get shop products
-  getSellerProducts: async (params = {}) => {
-    const response = await api.get('/seller/products', { params: { limit: 200, ...params } })
+  // Backend /seller/products has no limit/page params — returns all seller products
+  getSellerProducts: async () => {
+    const response = await api.get('/seller/products')
     return response.data
   },
 
