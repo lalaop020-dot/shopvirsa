@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { MessageSquare, Send, User, Bot, Clock, RefreshCw } from 'lucide-react'
+import { MessageSquare, Send, User, Bot, Clock, RefreshCw, Paperclip, FileText, X } from 'lucide-react'
 import { Card } from '../../components/common/Card'
 import { Input } from '../../components/common/Input'
 import { Button } from '../../components/common/Button'
@@ -12,8 +12,21 @@ export default function Support() {
   const { user } = useAuthStore()
   
   const [replyText, setReplyText] = useState('')
+  const [attachment, setAttachment] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isSending, setIsSending] = useState(false)
   const scrollRef = useRef(null)
+  const fileInputRef = useRef(null)
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 100 * 1024 * 1024) {
+      toast.error('File size must be less than 100MB')
+      return
+    }
+    setAttachment(file)
+  }
 
   // Dynamically discover the admin email from conversations, or fallback
   const partnerEmail = activeChats.length > 0 
@@ -45,9 +58,19 @@ export default function Support() {
 
   const handleSend = async (e) => {
     e.preventDefault()
-    if (!replyText.trim()) return
-    await sendMessage(partnerEmail, replyText)
-    setReplyText('')
+    if (!replyText.trim() && !attachment) return
+    
+    setIsSending(true)
+    try {
+      await sendMessage(partnerEmail, replyText, attachment)
+      setReplyText('')
+      setAttachment(null)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    } catch (err) {
+      toast.error('Failed to send message')
+    } finally {
+      setIsSending(false)
+    }
   }
 
   // Scroll to bottom on new messages
@@ -114,6 +137,20 @@ export default function Support() {
                           <span>{isBot ? 'Bot' : 'Admin Support'}</span>
                         </div>
                       )}
+                      
+                      {msg.attachmentUrl && (
+                        <div className="mb-2">
+                          {msg.attachmentUrl.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                            <img src={msg.attachmentUrl} alt="attachment" className="rounded-lg max-w-full max-h-48 object-cover" />
+                          ) : (
+                            <a href={msg.attachmentUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 p-2 bg-black/20 rounded-lg hover:bg-black/30 transition-colors text-xs break-all">
+                              <FileText className="w-4 h-4 flex-shrink-0" />
+                              <span className="truncate">{msg.attachmentName || 'Download Attachment'}</span>
+                            </a>
+                          )}
+                        </div>
+                      )}
+
                       <div>{msg.text || msg.body}</div>
                       <div className="text-[9px] text-slate-500 text-right mt-1.5 opacity-70">
                         {msg.created_at ? new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : msg.time}
@@ -126,18 +163,47 @@ export default function Support() {
           </div>
 
           {/* Input Form */}
-          <form onSubmit={handleSend} className="p-4 border-t border-dark-border flex gap-3 bg-dark-bg/25">
-            <input
-              type="text"
-              placeholder="Type your message to support..."
-              className="input-field flex-grow py-3"
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-            />
-            <Button type="submit" className="flex items-center justify-center p-3">
-              <Send className="w-5 h-5" />
-            </Button>
-          </form>
+          <div className="border-t border-dark-border bg-dark-bg/25">
+            {attachment && (
+              <div className="px-4 pt-3 flex items-center gap-2 text-xs text-slate-300">
+                <div className="flex items-center gap-2 bg-dark-card border border-dark-border px-3 py-1.5 rounded-lg max-w-[200px]">
+                  <FileText className="w-3 h-3 flex-shrink-0" />
+                  <span className="truncate flex-grow">{attachment.name}</span>
+                  <button type="button" onClick={() => setAttachment(null)} className="hover:text-red-400">
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              </div>
+            )}
+            <form onSubmit={handleSend} className="p-4 flex gap-3 items-center">
+              <input
+                type="file"
+                ref={fileInputRef}
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <button 
+                type="button" 
+                onClick={() => fileInputRef.current?.click()}
+                className="p-2 text-slate-400 hover:text-white transition-colors rounded-lg hover:bg-white/5"
+                title="Attach file (max 100MB)"
+                disabled={isSending}
+              >
+                <Paperclip className="w-5 h-5" />
+              </button>
+              <input
+                type="text"
+                placeholder="Type your message to support..."
+                className="input-field flex-grow py-3 disabled:opacity-50"
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                disabled={isSending}
+              />
+              <Button type="submit" className="flex items-center justify-center p-3" disabled={isSending || (!replyText.trim() && !attachment)}>
+                <Send className="w-5 h-5" />
+              </Button>
+            </form>
+          </div>
         </Card>
       </div>
     </div>

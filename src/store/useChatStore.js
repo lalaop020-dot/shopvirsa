@@ -40,13 +40,25 @@ const useChatStore = create((set, get) => ({
     return get().activeChats
   },
 
-  sendMessage: async (recipientEmail, text) => {
+  sendMessage: async (recipientEmail, text, attachment = null) => {
     try {
-      await api.post('/chat/messages', { recipientEmail, text })
+      if (attachment) {
+        const formData = new FormData()
+        formData.append('recipientEmail', recipientEmail)
+        if (text) formData.append('text', text)
+        formData.append('attachment', attachment)
+        
+        await api.post('/chat/messages', formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        })
+      } else {
+        await api.post('/chat/messages', { recipientEmail, text })
+      }
       await get().fetchMessages(recipientEmail)
       await get().fetchConversations()
     } catch (error) {
       console.error('Failed to send message:', error)
+      throw error
     }
   }
 }))
