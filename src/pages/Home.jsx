@@ -46,14 +46,12 @@ export default function Home() {
   const ITEMS_PER_PAGE = 24
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchStoreroomProducts({
-        page: currentPage,
-        limit: ITEMS_PER_PAGE,
-        category: activeCategory === 'All' ? undefined : activeCategory
-      })
-    }
-  }, [isAuthenticated, fetchStoreroomProducts, currentPage, activeCategory])
+    fetchStoreroomProducts({
+      page: currentPage,
+      limit: ITEMS_PER_PAGE,
+      category: activeCategory === 'All' ? undefined : activeCategory
+    })
+  }, [fetchStoreroomProducts, currentPage, activeCategory])
 
   const activeProducts = storeroomProducts
 
@@ -169,23 +167,7 @@ export default function Home() {
             transition={{ duration: 0.5, delay: 0.15 }}
             className="relative"
           >
-            <div className="bg-gradient-to-br from-primary/10 via-dark-card to-secondary/10 rounded-2xl overflow-hidden shadow-2xl border border-dark-border">
-              {!isAuthenticated ? (
-                <div className="p-10 flex flex-col items-center text-center gap-4">
-                  <div className="w-14 h-14 bg-primary/20 rounded-2xl flex items-center justify-center">
-                    <LogIn className="w-7 h-7 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg mb-1">Sign in to see live products</h3>
-                    <p className="text-sm text-slate-400">Log in to browse the marketplace, view stock, and start shopping.</p>
-                  </div>
-                  <div className="flex gap-3 mt-2">
-                    <Link to="/login"><Button size="sm">Login</Button></Link>
-                    <Link to="/register"><Button size="sm" variant="outline">Create Account</Button></Link>
-                  </div>
-                </div>
-              ) : (
-                <>
+              <div className="bg-gradient-to-br from-primary/10 via-dark-card to-secondary/10 rounded-2xl overflow-hidden shadow-2xl border border-dark-border">
                   {/* Showcase Header */}
                   <div className="p-4 pb-3 border-b border-dark-border/50">
                     <div className="flex items-center justify-between mb-3">
@@ -310,14 +292,11 @@ export default function Home() {
                       <div className="text-[10px] text-slate-500">Secure</div>
                     </div>
                   </div>
-                </>
-              )}
             </div>
 
             {/* Floating badge */}
-            {isAuthenticated && (
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
+            <motion.div
+              animate={{ y: [0, -6, 0] }}
                 transition={{ repeat: Infinity, duration: 3.5 }}
                 className="absolute -bottom-4 -left-4 glass-card p-2.5 rounded-xl flex items-center gap-2.5 shadow-2xl border border-dark-border/50"
               >
@@ -329,14 +308,12 @@ export default function Home() {
                   <div className="text-[10px] text-slate-400">Ready to Ship</div>
                 </div>
               </motion.div>
-            )}
           </motion.div>
         </div>
       </section>
 
       {/* ── Category Grid ─────────────────────────────────────────── */}
-      {isAuthenticated && (
-        <section>
+      <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
               <Layers className="w-5 h-5 text-primary" /> Shop by Category
@@ -368,11 +345,9 @@ export default function Home() {
             })}
           </div>
         </section>
-      )}
 
       {/* ── Product Section ────────────────────────────────────────── */}
-      {isAuthenticated && (
-        <section>
+      <section>
           {/* Section Header */}
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
@@ -482,25 +457,9 @@ export default function Home() {
               No products available right now. Check back soon.
             </div>
           ) : null}
-        </section>
-      )}
+      </section>
 
-      {/* ── Not Authenticated CTA ─────────────────────────────────── */}
-      {!isAuthenticated && (
-        <section className="text-center py-16 border border-dark-border rounded-3xl bg-dark-card/40 px-4">
-          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <ShieldCheck className="w-8 h-8 text-primary" />
-          </div>
-          <h2 className="text-2xl font-bold mb-2">Unlock the Full Marketplace</h2>
-          <p className="text-slate-400 max-w-md mx-auto mb-6 text-sm">
-            Create an account or log in to browse our full range of categories, products, and exclusive deals.
-          </p>
-          <div className="flex gap-4 justify-center flex-wrap">
-            <Link to="/login"><Button size="lg">Login</Button></Link>
-            <Link to="/register"><Button size="lg" variant="outline">Create Account</Button></Link>
-          </div>
-        </section>
-      )}
+
     </div>
   )
 }

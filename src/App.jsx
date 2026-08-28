@@ -65,9 +65,13 @@ function App() {
             <Route path="/product/:id" element={<ProductDetail />} />
             <Route path="/category/:slug" element={<ProductListing />} />
             <Route path="/cart" element={<Cart />} />
-            <Route path="/checkout" element={<Checkout />} />
-            <Route path="/profile" element={<CustomerProfile />} />
-            <Route path="/notifications" element={<NotificationsPage />} />
+            
+            {/* Authenticated Customer Routes */}
+            <Route element={<ProtectedRoute allowedRoles={['customer', 'seller', 'admin']} />}>
+              <Route path="/checkout" element={<Checkout />} />
+              <Route path="/profile" element={<CustomerProfile />} />
+              <Route path="/notifications" element={<NotificationsPage />} />
+            </Route>
           </Route>
 
           {/* Auth Routes */}

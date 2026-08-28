@@ -20,7 +20,7 @@ export function Navbar() {
     logout()
     setIsDropdownOpen(false)
     setIsMobileMenuOpen(false)
-    navigate('/login', { replace: true })
+    navigate('/', { replace: true })
   }
 
   const closeMobileMenu = () => setIsMobileMenuOpen(false)

@@ -232,27 +232,7 @@ const paginatedProducts = sortedProducts;
 
         {/* Product Area */}
         <div className="space-y-4 min-w-0">
-          {!isAuthenticated ? (
-            <div className="text-center py-20 bg-dark-card border border-dark-border rounded-2xl px-6 space-y-6">
-              <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto text-primary">
-                <LogIn className="w-8 h-8" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-white">Sign in to Browse the Marketplace</h3>
-                <p className="text-slate-400 max-w-md mx-auto text-sm">
-                  Log in to see live products, view stock availability, check pricing details, and start shopping.
-                </p>
-              </div>
-              <div className="flex gap-3 justify-center">
-                <Link to="/login">
-                  <Button>Login</Button>
-                </Link>
-                <Link to="/register">
-                  <Button variant="outline">Create Account</Button>
-                </Link>
-              </div>
-            </div>
-          ) : !isLoading && fetchError ? (
+          {!isLoading && fetchError ? (
             <div className="py-20 text-center bg-dark-card border border-red-500/20 rounded-3xl px-6 space-y-6 shadow-2xl">
               <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
                 <AlertCircle className="w-10 h-10 text-red-400" />
