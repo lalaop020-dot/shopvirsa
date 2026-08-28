@@ -3,6 +3,7 @@ import { Search, Filter, Warehouse, CheckCircle2 } from 'lucide-react'
 import { ProductCard } from '../../components/ProductCard'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
+import { Pagination } from '../../components/common/Pagination'
 import { useProductStore } from '../../store/useProductStore'
 import toast from 'react-hot-toast'
 
@@ -20,7 +21,12 @@ export default function ProductStorehouse() {
   }, [fetchStoreroomProducts, fetchSellerProducts])
 
   const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
   const [isImporting, setIsImporting] = useState(null)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm])
 
   const importedIds = sellerProductsList.map(p => p.globalId || p.product_id || p.id)
 
@@ -44,6 +50,10 @@ export default function ProductStorehouse() {
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   )
+
+  const ITEMS_PER_PAGE = 200
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -69,7 +79,7 @@ export default function ProductStorehouse() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {filteredProducts.map((product) => {
+        {paginatedProducts.map((product) => {
           const isAlreadyImported = importedIds.includes(product.id)
           return (
             <div key={product.id} className="relative group">
@@ -88,6 +98,19 @@ export default function ProductStorehouse() {
           )
         })}
       </div>
+
+      {filteredProducts.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={filteredProducts.length}
+          itemsPerPage={ITEMS_PER_PAGE}
+          onPageChange={(page) => {
+            setCurrentPage(page)
+            window.scrollTo({ top: 0, behavior: 'smooth' })
+          }}
+        />
+      )}
 
       {filteredProducts.length === 0 && (
         <div className="text-center py-20 border-2 border-dashed border-dark-border rounded-xl">

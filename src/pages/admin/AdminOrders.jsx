@@ -6,9 +6,11 @@ import {
   Trash2, Eye, Filter
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { Card } from '../../components/common/Card'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
+import { Pagination } from '../../components/common/Pagination'
 import useOrderStore from '../../store/useOrderStore'
 import usePlatformStore from '../../store/usePlatformStore'
 import { platformService } from '../../services/platformService'
@@ -365,6 +367,7 @@ function PlaceOrderModal({ onClose, onSuccess }) {
   const [selectedSeller, setSelectedSeller] = useState(null)
   const [shopProducts, setShopProducts]     = useState([])
   const [loadingProducts, setLoadingProducts] = useState(false)
+  const [currentPage, setCurrentPage]         = useState(1)
   const [cartItems, setCartItems]           = useState([])
   const [submitting, setSubmitting]         = useState(false)
 
@@ -395,6 +398,7 @@ function PlaceOrderModal({ onClose, onSuccess }) {
   const handleSellerSelect = async (seller) => {
     setSelectedSeller(seller)
     setCartItems([])
+    setCurrentPage(1)
     await loadShopProducts(seller)
     setStep(2)
   }
@@ -620,8 +624,9 @@ function PlaceOrderModal({ onClose, onSuccess }) {
                   <div>No products found in this shop</div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
-                  {shopProducts.map(product => {
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-72 overflow-y-auto pr-1">
+                    {shopProducts.slice((currentPage - 1) * 200, currentPage * 200).map(product => {
                     const inCart = cartItems.find(i => (i.id || i._id) === (product.id || product._id))
                     return (
                       <button
@@ -650,7 +655,18 @@ function PlaceOrderModal({ onClose, onSuccess }) {
                       </button>
                     )
                   })}
-                </div>
+                  </div>
+                  {shopProducts.length > 0 && (
+                    <Pagination
+                      currentPage={currentPage}
+                      totalPages={Math.ceil(shopProducts.length / 200) || 1}
+                      totalItems={shopProducts.length}
+                      itemsPerPage={200}
+                      onPageChange={setCurrentPage}
+                      className="mt-4"
+                    />
+                  )}
+                </>
               )}
             </div>
           )}

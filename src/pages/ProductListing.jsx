@@ -4,6 +4,7 @@ import { Search, Filter, LayoutGrid, List, ChevronDown, ShoppingBag, X, SlidersH
 import { ProductCard } from '../components/ProductCard'
 import { Button } from '../components/common/Button'
 import { Input } from '../components/common/Input'
+import { Pagination } from '../components/common/Pagination'
 import { useProductStore } from '../store/useProductStore'
 import useAuthStore from '../store/useAuthStore'
 
@@ -12,6 +13,7 @@ export default function ProductListing() {
   const navigate = useNavigate()
   const [view, setView] = useState('grid')
   const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -44,6 +46,10 @@ export default function ProductListing() {
     return activeProducts.filter((p) => p.category.toLowerCase() === catName.toLowerCase()).length
   }
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [slug, searchTerm])
+
   const filteredProducts = activeProducts.filter((product) => {
     const matchesCategory = !slug || slug === 'all' || product.category.toLowerCase() === slug.toLowerCase()
     const matchesSearch =
@@ -51,6 +57,10 @@ export default function ProductListing() {
       product.category.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesCategory && matchesSearch
   })
+
+  const ITEMS_PER_PAGE = 200
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
   const categoryList = Array.from(new Set(['All', ...featuredCategories, ...categories]))
 
@@ -231,7 +241,7 @@ export default function ProductListing() {
                   ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'
                   : 'grid-cols-1'
               }`}>
-                {filteredProducts.map((product) => (
+                {paginatedProducts.map((product) => (
                   <ProductCard
                     key={product.id}
                     product={product}
@@ -239,6 +249,20 @@ export default function ProductListing() {
                   />
                 ))}
               </div>
+
+              {filteredProducts.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredProducts.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={(page) => {
+                    setCurrentPage(page)
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                  className="mt-6"
+                />
+              )}
 
               {filteredProducts.length === 0 && (
                 <div className="text-center py-20 bg-dark-card border border-dark-border rounded-xl text-slate-500">

@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/common/Button'
 import { Card } from '../../components/common/Card'
 import { Input } from '../../components/common/Input'
+import { Pagination } from '../../components/common/Pagination'
 import { formatCurrency } from '../../utils/formatters'
 import { useProductStore } from '../../store/useProductStore'
 import toast from 'react-hot-toast'
@@ -23,7 +24,12 @@ export default function MyProducts() {
   }, [fetchSellerProducts])
 
   const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
   const [editingProduct, setEditingProduct] = useState(null)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm])
   
   // Edit Form States
   const [editPrice, setEditPrice] = useState('')
@@ -72,6 +78,10 @@ export default function MyProducts() {
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const ITEMS_PER_PAGE = 200
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1
+  const paginatedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+
   return (
     <div className="space-y-8 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -110,7 +120,7 @@ export default function MyProducts() {
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-border">
-              {filteredProducts.map((product) => (
+              {paginatedProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-dark-bg/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -168,6 +178,18 @@ export default function MyProducts() {
             </tbody>
           </table>
         </div>
+        {filteredProducts.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredProducts.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={(page) => {
+              setCurrentPage(page)
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          />
+        )}
       </Card>
 
       {/* Edit stock and price modal */}

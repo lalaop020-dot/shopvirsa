@@ -9,6 +9,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../components/common/Button'
 import { ProductCard } from '../components/ProductCard'
+import { Pagination } from '../components/common/Pagination'
 import { useProductStore } from '../store/useProductStore'
 import useAuthStore from '../store/useAuthStore'
 
@@ -46,7 +47,12 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState([])
   const [isSearchFocused, setIsSearchFocused] = useState(false)
-  const [visibleCount, setVisibleCount] = useState(20)
+  const [currentPage, setCurrentPage] = useState(1)
+
+  // Reset page when category changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [activeCategory])
 
   // Featured products (top 5 by stock)
   const featuredProducts = [...activeProducts].sort((a, b) => b.stock - a.stock).slice(0, 5)
@@ -82,7 +88,9 @@ export default function Home() {
     ? activeProducts
     : activeProducts.filter((p) => p.category.toLowerCase() === activeCategory.toLowerCase())
 
-  const displayedProducts = filteredProducts.slice(0, visibleCount)
+  const ITEMS_PER_PAGE = 200
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1
+  const displayedProducts = filteredProducts.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
   const categoryPills = [
     { label: 'All', value: 'All' },
@@ -388,7 +396,7 @@ export default function Home() {
               {categoryPills.map((pill) => (
                 <button
                   key={pill.value}
-                  onClick={() => { setActiveCategory(pill.value); setVisibleCount(20) }}
+                  onClick={() => setActiveCategory(pill.value)}
                   className={`flex-shrink-0 px-3 sm:px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 border whitespace-nowrap ${
                     activeCategory === pill.value
                       ? 'bg-primary text-white border-primary shadow-md shadow-primary/25'
@@ -416,18 +424,18 @@ export default function Home() {
                 ))}
               </div>
 
-              {/* Load More */}
-              {visibleCount < filteredProducts.length && (
-                <div className="text-center mt-8">
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={() => setVisibleCount((v) => v + 20)}
-                    className="px-10"
-                  >
-                    Load More Products ({filteredProducts.length - visibleCount} remaining)
-                  </Button>
-                </div>
+              {filteredProducts.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  totalItems={filteredProducts.length}
+                  itemsPerPage={ITEMS_PER_PAGE}
+                  onPageChange={(page) => {
+                    setCurrentPage(page)
+                    window.scrollTo({ top: 0, behavior: 'smooth' })
+                  }}
+                  className="mt-6"
+                />
               )}
 
               {displayedProducts.length === 0 && (

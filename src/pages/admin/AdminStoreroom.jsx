@@ -3,6 +3,7 @@ import { Plus, Trash2, Edit2, Play, Download, Search, AlertTriangle, FileJson, C
 import { Card } from '../../components/common/Card'
 import { Button } from '../../components/common/Button'
 import { Input } from '../../components/common/Input'
+import { Pagination } from '../../components/common/Pagination'
 import { useProductStore } from '../../store/useProductStore'
 import { formatCurrency } from '../../utils/formatters'
 import toast from 'react-hot-toast'
@@ -21,6 +22,11 @@ export default function AdminStoreroom() {
   }, [fetchStoreroomProducts])
 
   const [searchTerm, setSearchTerm] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm])
   
   // Modals state
   const [productModalOpen, setProductModalOpen] = useState(false)
@@ -124,6 +130,10 @@ export default function AdminStoreroom() {
     p.category.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
+  const ITEMS_PER_PAGE = 200
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE) || 1
+  const paginatedProducts = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
+
   const sampleJson = JSON.stringify([
     {
       "name": "Bose QuietComfort Ultra",
@@ -180,7 +190,7 @@ export default function AdminStoreroom() {
               </tr>
             </thead>
             <tbody className="divide-y divide-dark-border">
-              {filtered.map((product) => (
+              {paginatedProducts.map((product) => (
                 <tr key={product.id} className="hover:bg-dark-bg/50 transition-colors">
                   <td className="px-6 py-4 font-mono text-sm">{product.id}</td>
                   <td className="px-6 py-4">
@@ -224,6 +234,18 @@ export default function AdminStoreroom() {
             </tbody>
           </table>
         </div>
+        {filtered.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filtered.length}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={(page) => {
+              setCurrentPage(page)
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }}
+          />
+        )}
       </Card>
 
       {/* Manual Product Add/Edit Modal */}
