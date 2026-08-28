@@ -16,7 +16,7 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  const fetchMarketplaceProducts = useProductStore((state) => state.fetchMarketplaceProducts)
+  const fetchStoreroomProducts = useProductStore((state) => state.fetchStoreroomProducts)
 
   useEffect(() => {
     let cancelled = false
@@ -28,10 +28,10 @@ export default function ProductDetail() {
       // for cart & checkout) over the admin's global catalog record — the
       // /products/:id endpoint only knows the global catalog id, not the
       // per-seller listing id shown in the marketplace.
-      let list = useProductStore.getState().marketplaceProducts || []
+      let list = useProductStore.getState().storeroomProducts || []
       if (list.length === 0) {
-        await fetchMarketplaceProducts()
-        list = useProductStore.getState().marketplaceProducts || []
+        await fetchStoreroomProducts()
+        list = useProductStore.getState().storeroomProducts || []
       }
       const match = list.find(p => String(p.globalId) === String(id) || String(p.id) === String(id))
 
@@ -56,7 +56,7 @@ export default function ProductDetail() {
 
     resolveProduct()
     return () => { cancelled = true }
-  }, [id, fetchMarketplaceProducts])
+  }, [id, fetchStoreroomProducts])
 
   const addItem = useCartStore((state) => state.addItem)
 

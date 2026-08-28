@@ -29,20 +29,20 @@ const FEATURED_CATEGORIES = [
 export default function Home() {
   const navigate = useNavigate()
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-  const marketplaceProducts = useProductStore((state) => state.marketplaceProducts) || []
-  const fetchMarketplaceProducts = useProductStore((state) => state.fetchMarketplaceProducts)
-  const isLoading = useProductStore((state) => state.marketplaceLoading)
-  const fetchError = useProductStore((state) => state.marketplaceError)
+  const storeroomProducts = useProductStore((state) => state.storeroomProducts) || []
+  const fetchStoreroomProducts = useProductStore((state) => state.fetchStoreroomProducts)
+  const isLoading = useProductStore((state) => state.storeroomLoading)
+  const fetchError = useProductStore((state) => state.storeroomError)
   const categories = useProductStore((state) => state.categories) || []
   const categoryScrollRef = useRef(null)
 
   useEffect(() => {
     if (isAuthenticated) {
-      fetchMarketplaceProducts()
+      fetchStoreroomProducts()
     }
-  }, [isAuthenticated, fetchMarketplaceProducts])
+  }, [isAuthenticated, fetchStoreroomProducts])
 
-  const activeProducts = marketplaceProducts
+  const activeProducts = storeroomProducts
 
   // Active category filter on homepage
   const [activeCategory, setActiveCategory] = useState('All')
@@ -441,7 +441,7 @@ export default function Home() {
               <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
               <h3 className="text-xl font-bold text-white mb-2">Failed to load products</h3>
               <p className="text-slate-400 text-sm mb-6">{fetchError}</p>
-              <Button onClick={() => fetchMarketplaceProducts()} className="gap-2">
+              <Button onClick={() => fetchStoreroomProducts()} className="gap-2">
                 <RefreshCw className="w-4 h-4" /> Try Again
               </Button>
             </div>

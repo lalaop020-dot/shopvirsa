@@ -17,19 +17,19 @@ export default function ProductListing() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
-  const activeProducts = useProductStore((state) => state.marketplaceProducts) || []
-  const isLoading = useProductStore((state) => state.marketplaceLoading)
-  const fetchError = useProductStore((state) => state.marketplaceError)
+  const fetchStoreroomProducts = useProductStore((state) => state.fetchStoreroomProducts)
+  const storeroomProducts = useProductStore((state) => state.storeroomProducts) || []
+  const activeProducts = storeroomProducts
   const categories = useProductStore((state) => state.categories) || []
-  const fetchMarketplaceProducts = useProductStore((state) => state.fetchMarketplaceProducts)
+  
+  const isLoading = useProductStore((state) => state.storeroomLoading)
+  const fetchError = useProductStore((state) => state.storeroomError)
   const fetchCategories = useProductStore((state) => state.fetchCategories)
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchMarketplaceProducts()
-      fetchCategories()
-    }
-  }, [isAuthenticated, fetchMarketplaceProducts, fetchCategories])
+    fetchStoreroomProducts()
+    fetchCategories()
+  }, [fetchStoreroomProducts, fetchCategories])
 
   const featuredCategories = [
     'Electronics',
@@ -218,21 +218,21 @@ export default function ProductListing() {
                 </Link>
               </div>
             </div>
-          ) : fetchError ? (
-            <div className="py-20 text-center bg-dark-card border border-red-500/20 rounded-2xl px-6 space-y-5">
-              <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto">
-                <AlertCircle className="w-8 h-8 text-red-400" />
+          ) : !isLoading && fetchError ? (
+            <div className="py-20 text-center bg-dark-card border border-red-500/20 rounded-3xl px-6 space-y-6 shadow-2xl">
+              <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
+                <AlertCircle className="w-10 h-10 text-red-400" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-bold text-white">Failed to Load Products</h3>
-                <p className="text-slate-400 max-w-md mx-auto text-sm">{fetchError}</p>
+                <h3 className="text-2xl font-bold text-white">Failed to Load Products</h3>
+                <p className="text-slate-400 max-w-md mx-auto">{fetchError}</p>
               </div>
-              <Button
-                onClick={() => { fetchMarketplaceProducts(); fetchCategories() }}
-                className="gap-2"
+              <button
+                onClick={() => fetchStoreroomProducts()}
+                className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 text-white font-semibold px-6 py-3 rounded-xl transition-all hover:scale-105"
               >
-                <RefreshCw className="w-4 h-4" /> Retry
-              </Button>
+                <RefreshCw className="w-5 h-5" /> Try Again
+              </button>
             </div>
           ) : isLoading ? (
             <div className="py-20 text-center space-y-4">
