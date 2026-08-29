@@ -12,7 +12,7 @@ import { ProductCard } from '../components/ProductCard'
 import { Pagination } from '../components/common/Pagination'
 import { useProductStore } from '../store/useProductStore'
 import useAuthStore from '../store/useAuthStore'
-import { AlertCircle, RefreshCw, Smartphone, Dumbbell, Sparkles, Shirt, ShoppingBag, HomeIcon, PawPrint, Puzzle, Laptop, Headphones } from 'lucide-react'
+import { AlertCircle, RefreshCw } from 'lucide-react'
 
 // ─── Category config ──────────────────────────────────────────────────────────
 const FEATURED_CATEGORIES = [
