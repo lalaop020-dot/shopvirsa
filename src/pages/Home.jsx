@@ -14,18 +14,15 @@ import { useProductStore } from '../store/useProductStore'
 import useAuthStore from '../store/useAuthStore'
 import { AlertCircle, RefreshCw } from 'lucide-react'
 
-// ─── Category config ──────────────────────────────────────────────────────────
 const FEATURED_CATEGORIES = [
+  { name: "Men's Fashion",                        icon: Shirt,       color: 'text-indigo-400',  bg: 'from-indigo-500/20 to-indigo-600/10',slug: "men's fashion" },
+  { name: "Women's Fashion",                      icon: ShoppingBag, color: 'text-rose-400',    bg: 'from-rose-500/20 to-rose-600/10',    slug: "women's fashion" },
   { name: 'Electronics',                          icon: Smartphone,  color: 'text-blue-400',    bg: 'from-blue-500/20 to-blue-600/10',    slug: 'electronics' },
-  { name: 'Sports Goods',                         icon: Dumbbell,    color: 'text-orange-400',  bg: 'from-orange-500/20 to-orange-600/10', slug: 'sports goods' },
+  { name: 'Toys',                                 icon: Puzzle,      color: 'text-yellow-400',  bg: 'from-yellow-500/20 to-yellow-600/10',slug: 'toys' },
   { name: 'Cosmetics',                            icon: Sparkles,    color: 'text-pink-400',    bg: 'from-pink-500/20 to-pink-600/10',    slug: 'cosmetics' },
-  { name: "Men's Clothes",                        icon: Shirt,       color: 'text-indigo-400',  bg: 'from-indigo-500/20 to-indigo-600/10',slug: "men's clothes" },
-  { name: "Women's Clothes",                      icon: ShoppingBag, color: 'text-rose-400',    bg: 'from-rose-500/20 to-rose-600/10',    slug: "women's clothes" },
-  { name: 'Home Appliances',                      icon: HomeIcon,    color: 'text-emerald-400', bg: 'from-emerald-500/20 to-emerald-600/10', slug: 'home appliances' },
   { name: 'Pet Foods',                            icon: PawPrint,    color: 'text-amber-400',   bg: 'from-amber-500/20 to-amber-600/10',  slug: 'pet foods' },
-  { name: 'Toys and Games',                       icon: Puzzle,      color: 'text-yellow-400',  bg: 'from-yellow-500/20 to-yellow-600/10',slug: 'toys and games' },
-  { name: 'Computers',                            icon: Laptop,      color: 'text-cyan-400',    bg: 'from-cyan-500/20 to-cyan-600/10',    slug: 'computers' },
-  { name: 'Audio',                                icon: Headphones,  color: 'text-violet-400',  bg: 'from-violet-500/20 to-violet-600/10',slug: 'audio' },
+  { name: 'Home Appliances',                      icon: HomeIcon,    color: 'text-emerald-400', bg: 'from-emerald-500/20 to-emerald-600/10', slug: 'home appliances' },
+  { name: 'Sports Goods',                         icon: Dumbbell,    color: 'text-orange-400',  bg: 'from-orange-500/20 to-orange-600/10', slug: 'sports goods' },
 ]
 
 export default function Home() {
@@ -99,7 +96,7 @@ export default function Home() {
 
   const categoryPills = [
     { label: 'All', value: 'All' },
-    ...FEATURED_CATEGORIES.map((c) => ({ label: c.name, value: c.name })),
+    ...FEATURED_CATEGORIES.map((c) => ({ label: c.name, value: c.slug })),
   ]
 
   const scrollCats = (dir) => {
@@ -314,39 +311,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Category Grid ─────────────────────────────────────────── */}
-      <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-              <Layers className="w-5 h-5 text-primary" /> Shop by Category
-            </h2>
-            <Link to="/products">
-              <Button variant="ghost" size="sm" className="text-sm gap-1">
-                View All <ArrowRight className="w-3.5 h-3.5" />
-              </Button>
-            </Link>
-          </div>
-          <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
-            {FEATURED_CATEGORIES.map((cat) => {
-              const Icon = cat.icon
-              const count = activeProducts.filter((p) => p.category.toLowerCase() === cat.name.toLowerCase()).length
-              return (
-                <Link
-                  to={`/category/${cat.slug}`}
-                  key={cat.name}
-                  className="group flex flex-col items-center gap-1.5 p-2 sm:p-3 rounded-xl border border-dark-border bg-dark-card hover:border-primary/40 hover:bg-dark-card/80 transition-all duration-200 text-center cursor-pointer"
-                >
-                  <div className={`w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br ${cat.bg} rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
-                    <Icon className={`w-5 h-5 sm:w-6 sm:h-6 ${cat.color}`} />
-                  </div>
-                  <span className="text-[10px] sm:text-xs font-semibold text-slate-300 group-hover:text-white transition-colors leading-tight line-clamp-2">
-                    {cat.name}
-                  </span>
-                </Link>
-              )
-            })}
-          </div>
-        </section>
 
       {/* ── Product Section ────────────────────────────────────────── */}
       <section>
