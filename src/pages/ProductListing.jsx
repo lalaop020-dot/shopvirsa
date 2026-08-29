@@ -86,7 +86,7 @@ const [priceMax, setPriceMax] = useState(5000);
   });
 const paginatedProducts = sortedProducts;
 
-  const categoryList = Array.from(new Set(['All', ...featuredCategories, ...categories]))
+  const categoryList = Array.from(new Set(['All', ...featuredCategories]))
 
   const categoryBrands = {
     'sports goods': ['Nike', 'Adidas', 'Puma', 'Under Armour', 'Reebok'],
