@@ -50,10 +50,10 @@ const [priceMax, setPriceMax] = useState(5000);
   }, [fetchStoreroomProducts, fetchCategories, currentPage, slug, debouncedSearch])
 
   const featuredCategories = [
-    "Men's Fashion",
-    "Women's Fashion",
+    "Men's Clothes",
+    "Women's Clothes",
     'Electronics',
-    'Toys',
+    'Toys and Games',
     'Cosmetics',
     'Pet Foods',
     'Home Appliances',
@@ -115,7 +115,7 @@ const paginatedProducts = sortedProducts;
               <li
                 key={c}
                 onClick={() => {
-                  navigate(c === 'All' ? '/products' : `/category/${c.toLowerCase()}`)
+                  navigate(c === 'All' ? '/products' : `/category/${c}`)
                   setIsFilterOpen(false)
                 }}
                 className="flex items-center justify-between group cursor-pointer py-1"

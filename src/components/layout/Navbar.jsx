@@ -201,13 +201,13 @@ export function Navbar() {
           {/* Desktop category nav row */}
           <div className="hidden lg:flex items-center gap-6 border-t border-dark-border/40 py-2 text-sm text-slate-400 overflow-x-auto no-scrollbar">
             <Link to="/products" className="hover:text-primary transition-colors whitespace-nowrap font-medium text-white">All Products</Link>
-            <Link to="/category/electronics" className="hover:text-primary transition-colors whitespace-nowrap">Electronics</Link>
-            <Link to="/category/sports goods" className="hover:text-primary transition-colors whitespace-nowrap">Sports</Link>
-            <Link to="/category/cosmetics" className="hover:text-primary transition-colors whitespace-nowrap">Cosmetics</Link>
-            <Link to="/category/men's clothes & outfits" className="hover:text-primary transition-colors whitespace-nowrap">Men's Fashion</Link>
-            <Link to="/category/women's clothes & outfits" className="hover:text-primary transition-colors whitespace-nowrap">Women's Fashion</Link>
-            <Link to="/category/home appliances and goods accessories" className="hover:text-primary transition-colors whitespace-nowrap">Home</Link>
-            <Link to="/category/toys & games" className="hover:text-primary transition-colors whitespace-nowrap">Toys</Link>
+            <Link to="/category/Electronics" className="hover:text-primary transition-colors whitespace-nowrap">Electronics</Link>
+            <Link to="/category/Sports Goods" className="hover:text-primary transition-colors whitespace-nowrap">Sports</Link>
+            <Link to="/category/Cosmetics" className="hover:text-primary transition-colors whitespace-nowrap">Cosmetics</Link>
+            <Link to="/category/Men's Clothes" className="hover:text-primary transition-colors whitespace-nowrap">Men's Fashion</Link>
+            <Link to="/category/Women's Clothes" className="hover:text-primary transition-colors whitespace-nowrap">Women's Fashion</Link>
+            <Link to="/category/Home Appliances" className="hover:text-primary transition-colors whitespace-nowrap">Home</Link>
+            <Link to="/category/Toys and Games" className="hover:text-primary transition-colors whitespace-nowrap">Toys</Link>
             {!isAuthenticated && (
               <Link to="/seller-register" className="ml-auto text-primary font-semibold hover:underline whitespace-nowrap">Become a Seller →</Link>
             )}
@@ -238,13 +238,13 @@ export function Navbar() {
                 <div className="text-[10px] uppercase font-bold text-slate-500 px-3 pt-1 pb-1 tracking-widest">Shop</div>
                 {[
                   { to: '/products', label: 'All Products' },
-                  { to: '/category/electronics', label: 'Electronics' },
-                  { to: '/category/sports goods', label: 'Sports Goods' },
-                  { to: '/category/cosmetics', label: 'Cosmetics' },
-                  { to: "/category/men's clothes & outfits", label: "Men's Fashion" },
-                  { to: "/category/women's clothes & outfits", label: "Women's Fashion" },
-                  { to: '/category/home appliances and goods accessories', label: 'Home Appliances' },
-                  { to: '/category/toys & games', label: 'Toys & Games' },
+                  { to: '/category/Electronics', label: 'Electronics' },
+                  { to: '/category/Sports Goods', label: 'Sports Goods' },
+                  { to: '/category/Cosmetics', label: 'Cosmetics' },
+                  { to: "/category/Men's Clothes", label: "Men's Fashion" },
+                  { to: "/category/Women's Clothes", label: "Women's Fashion" },
+                  { to: '/category/Home Appliances', label: 'Home Appliances' },
+                  { to: '/category/Toys and Games', label: 'Toys & Games' },
                 ].map(({ to, label }) => (
                   <Link
                     key={to}

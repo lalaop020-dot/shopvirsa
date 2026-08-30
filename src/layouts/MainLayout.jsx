@@ -75,10 +75,10 @@ export default function MainLayout() {
               <ul className="space-y-2.5">
                 {[
                   { label: 'All Products', to: '/products' },
-                  { label: 'Electronics', to: '/category/electronics' },
-                  { label: 'Fashion', to: "/category/men's clothes & outfits" },
-                  { label: 'Home & Living', to: '/category/home appliances and goods accessories' },
-                  { label: 'Sports Goods', to: '/category/sports goods' },
+                  { label: 'Electronics', to: '/category/Electronics' },
+                  { label: 'Fashion', to: "/category/Men's Clothes" },
+                  { label: 'Home & Living', to: '/category/Home Appliances' },
+                  { label: 'Sports Goods', to: '/category/Sports Goods' },
                 ].map(({ label, to }) => (
                   <li key={label}>
                     <Link to={to} className="text-slate-400 hover:text-primary transition-colors text-sm">
