@@ -18,7 +18,7 @@ import { formatCurrency } from '../../utils/formatters'
 import toast from 'react-hot-toast'
 
 // ─── Constants & Helpers ────────────────────────────────────────────────────────
-const PAYMENT_METHODS = ['Manual Payment', 'Credit Card', 'Debit Card', 'Crypto', 'Cash on Delivery', 'Bank Transfer']
+const PAYMENT_METHODS = ['Crypto']
 
 function getMarginRate(seller) {
   const pkg = seller?.package?.toLowerCase() || seller?.package_name?.toLowerCase() || seller?.packageName?.toLowerCase() || 'silver'
@@ -374,7 +374,7 @@ function PlaceOrderModal({ onClose, onSuccess }) {
   const [shipping, setShipping] = useState({
     name: '', email: '', address: '', city: '', zip: ''
   })
-  const [paymentMethod, setPaymentMethod] = useState('Manual Payment')
+  const [paymentMethod, setPaymentMethod] = useState('Crypto')
 
   useEffect(() => { fetchAllSellers() }, [fetchAllSellers])
 
