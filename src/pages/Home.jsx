@@ -71,8 +71,7 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [featuredProducts.length])
 
-  // Quick search via local filter for featured items or new backend endpoint if needed.
-  // For the showcase, we'll just filter the currently loaded activeProducts for speed.
+  // Quick search via local filter for featured items (dropdown preview only)
   useEffect(() => {
     if (searchQuery.trim().length < 2) {
       setSearchResults((prev) => (prev.length === 0 ? prev : []))
@@ -84,6 +83,14 @@ export default function Home() {
       .slice(0, 5)
     setSearchResults(results)
   }, [searchQuery, activeProducts])
+
+  const handleHomeSearchSubmit = (e) => {
+    if (e.key === 'Enter' || e.type === 'click') {
+      const q = searchQuery.trim()
+      if (!q) return
+      navigate(`/products?q=${encodeURIComponent(q)}`)
+    }
+  }
 
   const totalProducts = backendTotalProducts
   const totalStock = backendTotalProducts * 15 // Estimated stock metric for display
@@ -183,6 +190,7 @@ export default function Home() {
                         placeholder="Quick search products..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        onKeyDown={handleHomeSearchSubmit}
                         onFocus={() => setIsSearchFocused(true)}
                         onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
                         className="w-full bg-dark-bg/80 border border-dark-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/30 transition-all"

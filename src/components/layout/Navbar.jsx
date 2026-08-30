@@ -12,9 +12,18 @@ export function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
+  const [navSearch, setNavSearch] = useState('')
   const { isAuthenticated, role, user, logout } = useAuthStore()
   const cartCount = useCartStore((state) => state.items.reduce((sum, item) => sum + item.quantity, 0))
   const navigate = useNavigate()
+
+  const handleSearchSubmit = (e) => {
+    e?.preventDefault()
+    const q = navSearch.trim()
+    if (!q) return
+    navigate(`/products?q=${encodeURIComponent(q)}`)
+    setIsMobileSearchOpen(false)
+  }
 
   const handleLogout = () => {
     logout()
@@ -61,15 +70,17 @@ export function Navbar() {
             </Link>
 
             {/* Desktop search — flex-1 center */}
-            <div className="hidden lg:flex flex-1 max-w-2xl mx-4 relative">
+            <form onSubmit={handleSearchSubmit} className="hidden lg:flex flex-1 max-w-2xl mx-4 relative">
               <input
                 type="text"
                 placeholder="Search products, brands and categories..."
+                value={navSearch}
+                onChange={(e) => setNavSearch(e.target.value)}
                 className="w-full bg-dark-card border border-dark-border rounded-full py-2.5 px-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-slate-500"
               />
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-              <Button className="absolute right-1 top-1 h-8 rounded-full text-xs px-4" size="sm">Search</Button>
-            </div>
+              <Button type="submit" className="absolute right-1 top-1 h-8 rounded-full text-xs px-4" size="sm">Search</Button>
+            </form>
 
             {/* Spacer on mobile to push icons right */}
             <div className="flex-1 lg:hidden" />
@@ -186,15 +197,18 @@ export function Navbar() {
           {/* Mobile search row */}
           {isMobileSearchOpen && (
             <div className="lg:hidden pb-3 px-1 animate-slide-up">
-              <div className="relative">
+              <form onSubmit={handleSearchSubmit} className="relative">
                 <input
                   type="text"
                   placeholder="Search products, brands..."
                   autoFocus
-                  className="w-full bg-dark-card border border-dark-border rounded-full py-2.5 pl-10 pr-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-slate-500"
+                  value={navSearch}
+                  onChange={(e) => setNavSearch(e.target.value)}
+                  className="w-full bg-dark-card border border-dark-border rounded-full py-2.5 pl-10 pr-20 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-slate-500"
                 />
                 <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-              </div>
+                <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary text-white text-xs font-semibold px-3 py-1.5 rounded-full hover:bg-primary/90 transition-all">Go</button>
+              </form>
             </div>
           )}
 

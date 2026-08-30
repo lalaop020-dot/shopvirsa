@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { Search, Filter, LayoutGrid, List, ShoppingBag, X, SlidersHorizontal, LogIn, AlertCircle, RefreshCw } from 'lucide-react'
 import { ProductCard } from '../components/ProductCard'
 import { Button } from '../components/common/Button'
@@ -11,8 +11,9 @@ import useAuthStore from '../store/useAuthStore'
 export default function ProductListing() {
   const { slug } = useParams()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [view, setView] = useState('grid')
-  const [searchTerm, setSearchTerm] = useState('')
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('q') || '')
   const [currentPage, setCurrentPage] = useState(1)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
 
@@ -65,6 +66,12 @@ const [priceMax, setPriceMax] = useState(5000);
     // so we hide or fake counts unless the backend provides them per category.
     return '' 
   }
+
+  // Sync search term when URL ?q= param changes (e.g. from navbar search)
+  useEffect(() => {
+    const q = searchParams.get('q') || ''
+    setSearchTerm(q)
+  }, [searchParams])
 
   useEffect(() => {
     setCurrentPage(1)
